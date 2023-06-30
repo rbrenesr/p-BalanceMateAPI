@@ -12,6 +12,16 @@ const login = async (req = request, res = response) => {
     const { email, password } = req.body;
 
 
+    console.log({ email, password });
+    const token = await generarJWT('123456789', 'rafael brenes');
+    res.status(200).json({
+      ok: true,
+      email,
+      name: "",
+      token
+    });
+
+/*
     //todo
     //*Verificar que el usuario exista en la base de datos
     const usuario = 'null';
@@ -45,6 +55,11 @@ const login = async (req = request, res = response) => {
       token
     });
 
+*/
+
+
+
+
   } catch (error) {
     console.log('Error de ejecución:  ' + error);
     res.status(500).json({
@@ -54,9 +69,9 @@ const login = async (req = request, res = response) => {
   }
 }
 
-const newUser = async(req = request, res = response) => {
+const newUser = async (req = request, res = response) => {
   const { name, email, password } = req.body;
- 
+
   try {
 
 
@@ -70,8 +85,8 @@ const newUser = async(req = request, res = response) => {
 
 
     res.status(200).json({
-      ok:true,
-      msg:'user successfully entered'
+      ok: true,
+      msg: 'user successfully entered'
     });
 
   } catch (error) {
