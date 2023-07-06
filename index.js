@@ -2,8 +2,8 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config(); //*Variables de entorno
 
-const { auth } = require('./routes/auth');
-const { settings } = require('./routes/settings');
+const { autenticarRouter } = require('./routes/autenticarRouter');
+//const { settings } = require('./routes/settings');
 
 
 const app = express();
@@ -11,8 +11,11 @@ app.use(cors());
 app.use(express.static('public'));
 app.use(express.json());
 
-app.use('/api/auth', auth);
-app.use('/api/settings', settings);
+
+app.use('/api/autenticar', autenticarRouter);
+
+
+//app.use('/api/settings', settings);
 // app.use('/api/company', company);
 // app.use('/api/accounts', accounts);
 // app.use('/api/journalEntriesTypes', journalEntriesTypes);

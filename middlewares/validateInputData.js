@@ -17,8 +17,8 @@ const myValidationResult = (req, res = response, next) => {
 }
 
 const validateInputDataLogin = [
-    check("email", "El email es requerido para realizar la autenticación").isEmail(),
-    check("password", "El password debe ser de mínimo 6 caracteres").isLength({ min: 6 }),
+    check("correo", "El email es requerido para realizar la autenticación").isEmail(),
+    check("contrasena", "El password debe ser de mínimo 6 caracteres").isLength({ min: 6 }),
     myValidationResult
 ];
 
