@@ -3,16 +3,16 @@ const usuarioRouter = express.Router();
 
 const { validarJWT } = require('../middlewares/validarJWT');
 const {
-    validateInputDataNuevoUsuario,
-    validateInputDataObtenerUsuarioPorId
+    validateInputDataNuevoUsuario,    
 } = require('../middlewares/validateInputData');
-const { nuevoUsuario, obtenerUsuarioPorId, obtenerUsuarioPorClave } = require("../controllers/usuarioController");
+const { nuevoUsuario, obtenerUsuario, actualizarUsuario, eliminarUsuario } = require("../controllers/usuarioController");
 
 
 usuarioRouter.use(validarJWT);
 
-usuarioRouter.post('/nuevoUsuario', validateInputDataNuevoUsuario, nuevoUsuario);
-usuarioRouter.get('/obtenerUsuarioPorId/:id', validateInputDataObtenerUsuarioPorId, obtenerUsuarioPorId);
-usuarioRouter.get('/obtenerUsuarioPorClave/:clave?/:valor?', obtenerUsuarioPorClave);
+usuarioRouter.post('/', validateInputDataNuevoUsuario, nuevoUsuario);
+usuarioRouter.get('/:clave?/:valor?', obtenerUsuario);
+usuarioRouter.put('/:id', actualizarUsuario);
+usuarioRouter.delete('/:id', eliminarUsuario);
 
 module.exports = { usuarioRouter };

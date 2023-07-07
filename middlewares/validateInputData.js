@@ -29,10 +29,7 @@ const validateInputDataNuevoUsuario = [
     myValidationResult
 ];
 
-const validateInputDataObtenerUsuarioPorId = [
-    check("id", "id es requerido").not().isEmpty(),
-    myValidationResult
-];
 
 
-module.exports={ validateInputDataLogin, validateInputDataNuevoUsuario, validateInputDataObtenerUsuarioPorId};
+
+module.exports={ validateInputDataLogin, validateInputDataNuevoUsuario};
