@@ -4,7 +4,8 @@ require('dotenv').config(); //*Variables de entorno
 
 const { autenticarRouter } = require('./routes/autenticarRouter');
 const { usuarioRouter } = require('./routes/usuarioRouter');
-//const { settings } = require('./routes/settings');
+const { empresaRouter } = require('./routes/empresaRouter');
+
 
 
 const app = express();
@@ -15,17 +16,8 @@ app.use(express.json());
 
 app.use('/api/autenticar', autenticarRouter);
 app.use('/api/usuario', usuarioRouter);
+app.use('/api/empresa', empresaRouter);
 
-
-//app.use('/api/settings', settings);
-// app.use('/api/company', company);
-// app.use('/api/accounts', accounts);
-// app.use('/api/journalEntriesTypes', journalEntriesTypes);
-// app.use('/api/documentsTypes', documentsTypes);
-// app.use('/api/journalEntries', journalEntries);
-// app.use('/api/suppliers', suppliers);
-// app.use('/api/customers', customers);
-// app.use('/api/periodClosing', periodClosing);
 
 app.listen(process.env.PORT, () => {
     console.log(`Server running in port ${process.env.PORT}`);

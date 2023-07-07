@@ -29,7 +29,14 @@ const validateInputDataNuevoUsuario = [
     myValidationResult
 ];
 
+const validateInputDataNuevoEmpresa = [
+    check("correo", "El email es requerido").isEmail(),
+    check("contrasena", "El password debe ser de mínimo 6 caracteres").isLength({min: 6,}),
+    check("nombre", "El nombre es requerido").not().isEmpty(),
+    myValidationResult
+];
 
 
 
-module.exports={ validateInputDataLogin, validateInputDataNuevoUsuario};
+
+module.exports={ validateInputDataLogin, validateInputDataNuevoUsuario, validateInputDataNuevoEmpresa};
