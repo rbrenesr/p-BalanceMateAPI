@@ -3,6 +3,7 @@ const cors = require('cors');
 require('dotenv').config(); //*Variables de entorno
 
 const { autenticarRouter } = require('./routes/autenticarRouter');
+const { usuarioRouter } = require('./routes/usuarioRouter');
 //const { settings } = require('./routes/settings');
 
 
@@ -13,6 +14,7 @@ app.use(express.json());
 
 
 app.use('/api/autenticar', autenticarRouter);
+app.use('/api/usuario', usuarioRouter);
 
 
 //app.use('/api/settings', settings);
