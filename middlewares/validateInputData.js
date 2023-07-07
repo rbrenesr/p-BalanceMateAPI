@@ -22,12 +22,12 @@ const validateInputDataLogin = [
     myValidationResult
 ];
 
-const validateInputDataNewUser = [
-    check("name", "El nombre es requerido").not().isEmpty(),
-    check("email", "El email es requerido").isEmail(),
-    check("password", "El password debe ser de mínimo 6 caracteres").isLength({min: 6,}),
+const validateInputDataNuevoUsuario = [
+    check("correo", "El email es requerido").isEmail(),
+    check("contrasena", "El password debe ser de mínimo 6 caracteres").isLength({min: 6,}),
+    check("nombre", "El nombre es requerido").not().isEmpty(),
     myValidationResult
 ];
 
 
-module.exports={ validateInputDataLogin, validateInputDataNewUser };
+module.exports={ validateInputDataLogin, validateInputDataNuevoUsuario };

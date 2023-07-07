@@ -7,7 +7,11 @@ const sql = require('mssql');
 
 const nuevoUsuario = async (req = request, res = response) => {
 
-  const { correo, contrasena, nombre, direccion, estado, telefono } = req.body;
+  let { correo, contrasena, nombre, direccion, telefono, estado } = req.body;
+
+  if (!direccion) direccion = '';
+  if (!telefono) telefono = '';
+  if (!estado) estado = 1;
 
   try {
 

@@ -5,8 +5,6 @@ const { validarJWT } = require('../middlewares/validarJWT');
 const { validateInputDataLogin, validateInputDataNewUser } = require('../middlewares/validateInputData');
 const { autenticar, renovarToken, obtenerEmpresasUsuario } = require("../controllers/autenticarController");
 
-
-console.log('object');
 autenticarRouter.post('/',validateInputDataLogin, autenticar);
 autenticarRouter.use(validarJWT);
 autenticarRouter.get('/renovarToken', renovarToken);
