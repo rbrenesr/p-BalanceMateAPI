@@ -112,6 +112,130 @@ const nuevoUsuario = async (req = request, res = response) => {
 
 }
 
+const obtenerUsuarioPorId = async (req = request, res = response) => {
+
+  try {
+
+    const id = req.params.id;
+    const uid = req.id;
+
+    //TODO
+    //* Validar que el usuario que realiza la solicitud tenga acceso al recurso
+
+    const myquery =
+      `SELECT [id] ` +
+      `,[u_correo] correo ` +
+      `,[u_nombre] nombre` +
+      `,[u_direccion] direccion` +
+      `,[u_telefono] telefono` +
+      `,[u_estado] estado ` +
+      `FROM Usuario ` +
+      `WHERE id = ${id}`;
+
+    const pool = await sql.connect(configBD);
+    const result = await pool.request().query(myquery);
+    const recordset = result.recordset;
+
+
+    if (recordset.length < 1) {
+      return res.status(200).json({
+        ok: false,
+        msg: `No existe usuarios con el id = ${id}`,
+        usuario: recordset[0],
+      });
+    }
+
+
+    return res.status(200).json({
+      ok: true,
+      msg: `Usuario seleccionado= ${id}`,
+      usuario: recordset[0],
+    });
+
+  } catch (error) {
+    console.log(error.message);
+    res.status(500).json({
+      ok: false,
+      msg: 'Error al procesar la selección del usuario.',
+      msgSystem: error.originalError.info.message
+    });
+  }
+
+
+}
+
+const obtenerUsuarioPorClave = async (req = request, res = response) => {
+
+  try {
+
+    let clave = req.params.clave;
+    let valor = req.params.valor;
+
+    if (!valor) valor = '';
+    if (!clave) { clave = 'u_nombre'; }
+    else {
+
+      const claveMapping = {
+        'nombre': 'u_nombre',
+        'correo': 'u_correo',
+        'telefono': 'u_telefono',
+        'direccion': 'u_direccion',
+      };
+
+      if (claveMapping.hasOwnProperty(clave)) {
+        clave = claveMapping[clave];
+      }
+
+    }
+
+
+    const uid = req.id;
+    //TODO
+    //* Validar que el usuario que realiza la solicitud tenga acceso al recurso
+
+    const myquery =
+      `SELECT [id] ` +
+      `,[u_correo] correo ` +
+      `,[u_nombre] nombre` +
+      `,[u_direccion] direccion` +
+      `,[u_telefono] telefono` +
+      `,[u_estado] estado ` +
+      `FROM Usuario ` +
+      `WHERE ${clave} like '%${valor}%'`;
+
+    const pool = await sql.connect(configBD);
+    const result = await pool.request().query(myquery);
+    const recordset = result.recordset;
+
+    if (recordset.length < 1) {
+      return res.status(200).json({
+        ok: false,
+        msg: `No existe datos para la búsqueda proporcionada por = ${clave} en ${valor}`,
+        usuario: recordset[0],
+      });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      msg: `Usuario seleccionado`,
+      usuario: recordset,
+    });
+
+  } catch (error) {
+    console.log(error.message);
+    res.status(500).json({
+      ok: false,
+      msg: 'Error al procesar la selección del usuario.',
+      msgSystem: error.originalError.info.message
+    });
+  }
+
+
+}
+
+const actualziarUsuario = () => { }
+const eliminarUsuario = () => { }
+
 const existeElUsuario = async (correo) => {
   const myquery = `SELECT 1 FROM Usuario WHERE u_correo = '${correo}'`;
   const pool = await sql.connect(configBD);
@@ -124,4 +248,4 @@ const existeElUsuario = async (correo) => {
     return false;
 }
 
-module.exports = { nuevoUsuario, };
+module.exports = { nuevoUsuario, obtenerUsuarioPorId, obtenerUsuarioPorClave };

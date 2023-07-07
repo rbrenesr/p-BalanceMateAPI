@@ -2,12 +2,17 @@ const express = require('express');
 const usuarioRouter = express.Router();
 
 const { validarJWT } = require('../middlewares/validarJWT');
-const { validateInputDataNuevoUsuario } = require('../middlewares/validateInputData');
-const { nuevoUsuario } = require("../controllers/usuarioController");
+const {
+    validateInputDataNuevoUsuario,
+    validateInputDataObtenerUsuarioPorId
+} = require('../middlewares/validateInputData');
+const { nuevoUsuario, obtenerUsuarioPorId, obtenerUsuarioPorClave } = require("../controllers/usuarioController");
 
 
 usuarioRouter.use(validarJWT);
-// usuarioRouter.post('/nuevoUsuario', validateInputDataNewUser, nuevoUsuario);
- usuarioRouter.post('/nuevoUsuario', validateInputDataNuevoUsuario , nuevoUsuario);
+
+usuarioRouter.post('/nuevoUsuario', validateInputDataNuevoUsuario, nuevoUsuario);
+usuarioRouter.get('/obtenerUsuarioPorId/:id', validateInputDataObtenerUsuarioPorId, obtenerUsuarioPorId);
+usuarioRouter.get('/obtenerUsuarioPorClave/:clave?/:valor?', obtenerUsuarioPorClave);
 
 module.exports = { usuarioRouter };
