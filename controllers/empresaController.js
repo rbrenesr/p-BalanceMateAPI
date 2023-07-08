@@ -32,11 +32,12 @@ const nuevoEmpresa = async (req = request, res = response) => {
     const request = new sql.Request(transaction);
 
     const newId = await insertarEmpresa(request, { cedula, nombre, direccion, baseDatos, estado });
-    const rowsAffected = await insertarUsuarioEmpresa(request, uid, newId); //* Retrona 1
+    const rowsAffected = await insertarUsuarioEmpresa(request, uid, newId); //* Retrona 1    
+    const r = await crearBaseDatos(request, newId, cedula); //* Retrona 1
 
     const myquery =
       `SELECT ` +
-          `id ,cedula ,nombre ,direccion ,baseDatos ,estado ` +
+      `id ,cedula ,nombre ,direccion ,baseDatos ,estado ` +
       `FROM Empresa ` +
       `WHERE id = ${newId}`;
     const newEmp = (await request.query(myquery)).recordset[0];
@@ -191,6 +192,26 @@ const insertarUsuarioEmpresa = async (request, usuarioId, empresaId) => {
         'VALUES ( @p50, @p51 )');
 
     return result.rowsAffected[0];
+  } catch (error) {
+    console.log(`Error insertarUsuarioEmpresa= ${error.message}`);
+    throw (error);
+  }
+
+}
+
+const crearBaseDatos = async (request, id, cedula) => {
+  try {
+
+    const pool = await sql.connect(configBD);
+    const result = await pool.request()
+      .input('id', sql.Int, id)
+      .input('cedula', sql.VarChar, cedula)
+      .execute(`SPCrearEmpresa`);
+
+    console.log(result);
+
+    return true;
+    // return result.rowsAffected[0];
   } catch (error) {
     console.log(`Error insertarUsuarioEmpresa= ${error.message}`);
     throw (error);
