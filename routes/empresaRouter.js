@@ -10,7 +10,7 @@ const { nuevoEmpresa, obtenerEmpresa, actualizarEmpresa, eliminarEmpresa } = req
 empresaRouter.use(validarJWT);
 
 // empresaRouter.post('/', validateInputDataNuevoEmpresa, nuevoEmpresa);
-empresaRouter.post('/', nuevoEmpresa);
+empresaRouter.post('/', validateInputDataNuevoEmpresa, nuevoEmpresa);
 empresaRouter.get('/:clave?/:valor?', obtenerEmpresa);
 empresaRouter.put('/:id', actualizarEmpresa);
 empresaRouter.delete('/:id', eliminarEmpresa);

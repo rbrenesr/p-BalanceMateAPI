@@ -31,9 +31,15 @@ const nuevoEmpresa = async (req = request, res = response) => {
     await transaction.begin();
     const request = new sql.Request(transaction);
 
-    const newId = await insertarEmpresa(request, { cedula, nombre, direccion, baseDatos, estado });
-    const rowsAffected = await insertarUsuarioEmpresa(request, uid, newId); //* Retrona 1    
-    const r = await crearBaseDatos(request, newId, cedula); //* Retrona 1
+    const newId = await insertarEmpresa(request, { cedula, nombre, direccion, estado });
+    await insertarUsuarioEmpresa(request, uid, newId); //* Retrona 1    
+    const newbaseDatos = await crearBaseDatos(newId, cedula); //* Retrona 1
+
+    console.log(newbaseDatos);
+
+    const myqueryBase = `UPDATE dbo.Empresa set baseDatos = '${newbaseDatos}' where id = ${newId}`;
+    const rsMyqueryBase = await request.query(myqueryBase);
+    console.log(rsMyqueryBase);
 
     const myquery =
       `SELECT ` +
@@ -165,8 +171,8 @@ const insertarEmpresa = async (request, emp) => {
       .input('p1', sql.VarChar, emp.cedula)
       .input('p2', sql.VarChar, emp.nombre)
       .input('p3', sql.VarChar, emp.direccion)
-      .input('p4', sql.VarChar, emp.baseDatos)
-      .input('p5', sql.TinyInt, emp.estado);
+      .input('p4', sql.VarChar, '') //*baseDatos
+      .input('p5', sql.TinyInt, emp.estado)
 
     const result = await request
       .query('INSERT INTO Empresa ( cedula, nombre, direccion, baseDatos, estado ) ' +
@@ -199,7 +205,7 @@ const insertarUsuarioEmpresa = async (request, usuarioId, empresaId) => {
 
 }
 
-const crearBaseDatos = async (request, id, cedula) => {
+const crearBaseDatos = async (id, cedula) => {
   try {
 
     const pool = await sql.connect(configBD);
@@ -207,12 +213,12 @@ const crearBaseDatos = async (request, id, cedula) => {
       .input('id', sql.Int, id)
       .input('cedula', sql.VarChar, cedula)
       .execute(`SPCrearEmpresa`);
+    const newbaseDatos = result.recordset[0].nombre;
 
-    console.log(result);
+    return newbaseDatos;
 
-    return true;
-    // return result.rowsAffected[0];
   } catch (error) {
+    console.log(`Error insertarUsuarioEmpresa= ${error}`);
     console.log(`Error insertarUsuarioEmpresa= ${error.message}`);
     throw (error);
   }

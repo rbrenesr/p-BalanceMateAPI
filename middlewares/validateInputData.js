@@ -30,9 +30,8 @@ const validateInputDataNuevoUsuario = [
 ];
 
 const validateInputDataNuevoEmpresa = [
-    check("correo", "El email es requerido").isEmail(),
-    check("contrasena", "El password debe ser de mínimo 6 caracteres").isLength({min: 6,}),
-    check("nombre", "El nombre es requerido").not().isEmpty(),
+    check("cedula", "Cédula requerido.").not().isEmpty(),
+    check("nombre", "Nombre requerido.").not().isEmpty(),    
     myValidationResult
 ];
 
