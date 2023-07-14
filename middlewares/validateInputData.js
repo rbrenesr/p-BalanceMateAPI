@@ -29,7 +29,7 @@ const validateInputDataNuevoUsuario = [
     myValidationResult
 ];
 
-const validateInputDataNuevoEmpresa = [
+const validateInputDataEmpresa = [
     check("cedula", "Cédula requerido.").not().isEmpty(),    
     check("nombre", "Nombre requerido.").not().isEmpty(),    
     check("correo", "Correo requerido.").not().isEmpty(),    
@@ -42,4 +42,4 @@ const validateInputDataNuevoEmpresa = [
 
 
 
-module.exports={ validateInputDataLogin, validateInputDataNuevoUsuario, validateInputDataNuevoEmpresa};
+module.exports={ validateInputDataLogin, validateInputDataNuevoUsuario, validateInputDataEmpresa};
