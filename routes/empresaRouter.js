@@ -8,8 +8,6 @@ const {
 const { nuevoEmpresa, obtenerEmpresa, actualizarEmpresa, eliminarEmpresa } = require("../controllers/empresaController");
 
 empresaRouter.use(validarJWT);
-
-// empresaRouter.post('/', validateInputDataNuevoEmpresa, nuevoEmpresa);
 empresaRouter.post('/', validateInputDataNuevoEmpresa, nuevoEmpresa);
 empresaRouter.get('/:clave?/:valor?', obtenerEmpresa);
 empresaRouter.put('/:id', actualizarEmpresa);

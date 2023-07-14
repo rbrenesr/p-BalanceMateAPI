@@ -9,9 +9,24 @@ const sql = require('mssql');
 const nuevoEmpresa = async (req = request, res = response) => {
 
   const uid = req.id;
-  let { cedula, nombre, direccion, baseDatos, estado } = req.body;
-  if (!direccion) direccion = '';
-  if (!estado) estado = 1;
+  let { baseDatos, cedula, nombre, correo, telefonoUno, telefonoDos, paginaWeb, direccion, repNombre, repCedula, repTelefono, repCorreo, estado } = req.body;
+
+  // if (!telefonoUno) telefonoUno = '';
+  // if (!telefonoDos) telefonoDos = '';
+  // if (!paginaWeb) paginaWeb = '';
+  // if (!direccion) direccion = '';
+  // if (!repTelefono) repTelefono = '';
+  // if (!estado) estado = 1;
+
+  baseDatos = baseDatos || '';
+  telefonoUno = telefonoUno || '';
+  telefonoDos = telefonoDos || '';
+  paginaWeb = paginaWeb || '';
+  direccion = direccion || '';
+  repTelefono = repTelefono || '';
+  estado = estado || '';
+
+console.log('el valor es '+baseDatos);
 
   if (await existeEmpresa(cedula)) {
     return res.status(409).json({
@@ -31,7 +46,7 @@ const nuevoEmpresa = async (req = request, res = response) => {
     await transaction.begin();
     const request = new sql.Request(transaction);
 
-    const newId = await insertarEmpresa(request, { cedula, nombre, direccion, estado });
+    const newId = await insertarEmpresa(request, {baseDatos, cedula, nombre, correo, telefonoUno, telefonoDos, paginaWeb, direccion, repNombre, repCedula, repTelefono, repCorreo, estado });
     await insertarUsuarioEmpresa(request, uid, newId); //* Retrona 1    
     const newbaseDatos = await crearBaseDatos(newId, cedula); //* Retrona 1
 
@@ -132,8 +147,8 @@ const obtenerEmpresa = async (req = request, res = response) => {
 
     return res.status(200).json({
       ok: true,
-      msg: `Usuario seleccionado`,
-      usuario: recordset,
+      msg: `Empresas seleccionadas`,
+      empresa: recordset,
     });
 
   } catch (error) {
@@ -166,17 +181,26 @@ const existeEmpresa = async (cedula) => {
 }
 
 const insertarEmpresa = async (request, emp) => {
+
   try {
     request
-      .input('p1', sql.VarChar, emp.cedula)
-      .input('p2', sql.VarChar, emp.nombre)
-      .input('p3', sql.VarChar, emp.direccion)
-      .input('p4', sql.VarChar, '') //*baseDatos
-      .input('p5', sql.TinyInt, emp.estado)
+      .input('pbaseDatos', sql.VarChar, emp.baseDatos)
+      .input('pcedula', sql.VarChar, emp.cedula)
+      .input('pnombre',  sql.VarChar, emp.nombre)
+      .input('pcorreo',  sql.VarChar, emp.correo)
+      .input('ptelefonoUno',  sql.VarChar, emp.telefonoUno)
+      .input('ptelefonoDos',  sql.VarChar, emp.telefonoDos)
+      .input('ppaginaWeb',  sql.VarChar, emp.paginaWeb)
+      .input('pdireccion',  sql.VarChar, emp.direccion)
+      .input('prepNombre',  sql.VarChar, emp.repNombre)
+      .input('prepCedula', sql.VarChar, emp.repCedula)
+      .input('prepTelefono',  sql.VarChar, emp.repTelefono)
+      .input('prepCorreo',  sql.VarChar, emp.repCorreo)
+      .input('pestado', sql.VarChar, emp.estado)
 
     const result = await request
-      .query('INSERT INTO Empresa ( cedula, nombre, direccion, baseDatos, estado ) ' +
-        'OUTPUT inserted.id VALUES ( @p1, @p2, @p3, @p4, @p5 )');
+      .query('INSERT INTO Empresa ( baseDatos, cedula, nombre, correo, telefonoUno, telefonoDos, paginaWeb, direccion, repNombre, repCedula, repTelefono, repCorreo, estado ) ' +
+        'OUTPUT inserted.id VALUES ( @pbaseDatos, @pcedula,@pnombre,@pcorreo,@ptelefonoUno,@ptelefonoDos,@ppaginaWeb,@pdireccion,@prepNombre,@prepCedula,@prepTelefono,@prepCorreo,@pestado )');
 
     const recordset = result.recordset;
     return recordset[0].id;

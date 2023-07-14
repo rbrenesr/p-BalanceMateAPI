@@ -30,8 +30,12 @@ const validateInputDataNuevoUsuario = [
 ];
 
 const validateInputDataNuevoEmpresa = [
-    check("cedula", "Cédula requerido.").not().isEmpty(),
+    check("cedula", "Cédula requerido.").not().isEmpty(),    
     check("nombre", "Nombre requerido.").not().isEmpty(),    
+    check("correo", "Correo requerido.").not().isEmpty(),    
+    check("repNombre", "Rep. Nombre requerido.").not().isEmpty(),    
+    check("repCedula", "Rep. Cédula requerido.").not().isEmpty(),    
+    check("repCorreo", "Rep.Correo requerido.").not().isEmpty(),       
     myValidationResult
 ];
 
