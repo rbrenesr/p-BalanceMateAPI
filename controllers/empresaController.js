@@ -5,8 +5,7 @@ const bcryptjs = require('bcryptjs');
 const sql = require('mssql');
 
 
-
-const nuevoEmpresa = async (req = request, res = response) => {
+const onNewEmpresa = async (req = request, res = response) => {
 
   const uid = req.id;
   let { baseDatos, cedula, nombre, correo, telefonoUno, telefonoDos, paginaWeb, direccion, repNombre, repCedula, repTelefono, repCorreo, estado } = req.body;
@@ -19,65 +18,96 @@ const nuevoEmpresa = async (req = request, res = response) => {
   repTelefono = repTelefono || '';
   estado = estado || '1';
 
-
-  if (await existeEmpresaByCedula(cedula)) {
+  if (await findEmpresaByCedula(cedula)) {
     return res.status(409).json({
       ok: false,
       msg: 'La empresa ya se encuentra registrada.'
     });
   }
 
-  // sql connection
   const dbConn = new sql.ConnectionPool(configBD);
   await dbConn.connect();
-  let transaction;
 
   try {
 
-    transaction = new sql.Transaction(dbConn);
+    const transaction = new sql.Transaction(dbConn);
     await transaction.begin();
-    const request = new sql.Request(transaction);
 
-    const newId = await insertarEmpresa(request, { baseDatos, cedula, nombre, correo, telefonoUno, telefonoDos, paginaWeb, direccion, repNombre, repCedula, repTelefono, repCorreo, estado });
-    await insertarUsuarioEmpresa(request, uid, newId); //* Retrona 1    
-    const newbaseDatos = await crearBaseDatos(newId, cedula); //* Retrona 1
+    const empresaResult = await new sql.Request(transaction)
+      .input('baseDatos', sql.VarChar, baseDatos)
+      .input('cedula', sql.VarChar, cedula)
+      .input('nombre', sql.VarChar, nombre)
+      .input('correo', sql.VarChar, correo)
+      .input('telefonoUno', sql.VarChar, telefonoUno)
+      .input('telefonoDos', sql.VarChar, telefonoDos)
+      .input('paginaWeb', sql.VarChar, paginaWeb)
+      .input('direccion', sql.VarChar, direccion)
+      .input('repNombre', sql.VarChar, repNombre)
+      .input('repCedula', sql.VarChar, repCedula)
+      .input('repTelefono', sql.VarChar, repTelefono)
+      .input('repCorreo', sql.VarChar, repCorreo)
+      .input('estado', sql.VarChar, estado)
+      .query('INSERT INTO Empresa ( baseDatos, cedula, nombre, correo, telefonoUno, telefonoDos, paginaWeb, direccion, repNombre, repCedula, repTelefono, repCorreo, estado ) ' +
+        'OUTPUT inserted.id VALUES ( @baseDatos, @cedula,@nombre,@correo,@telefonoUno,@telefonoDos,@paginaWeb,@direccion,@repNombre,@repCedula,@repTelefono,@repCorreo,@estado )');
 
-    console.log(newbaseDatos);
+    const recordset = empresaResult.recordset;
+    const newId = recordset[0].id;
 
-    const myqueryBase = `UPDATE dbo.Empresa set baseDatos = '${newbaseDatos}' where id = ${newId}`;
-    const rsMyqueryBase = await request.query(myqueryBase);
-    console.log(rsMyqueryBase);
-
-    const myquery =
-      `SELECT ` +
-      `id ,cedula ,nombre ,direccion ,baseDatos ,estado ` +
-      `FROM Empresa ` +
-      `WHERE id = ${newId}`;
-    const newEmp = (await request.query(myquery)).recordset[0];
+    /**Insert UsuarioEmpresa */
+    const usuarioEmpresaResult = await new sql.Request(transaction)
+      .input('usuarioId', sql.Int, uid)
+      .input('empresaId', sql.Int, newId)
+      .query('INSERT INTO UsuarioEmpresa ( usuarioId, empresaId ) ' +
+        'VALUES ( @usuarioId, @empresaId )');
 
     await transaction.commit();
 
+
+    const newbaseDatosResult = await dbConn.request()
+      .input('id', sql.Int, newId)
+      .input('cedula', sql.VarChar, cedula)
+      .execute(`SPCrearEmpresa`);
+    const newbaseDatos = newbaseDatosResult.recordset[0].nombre;
+
+
+    const updateEmpresaResult = await dbConn.request()
+      .query(`UPDATE dbo.Empresa set baseDatos = '${newbaseDatos}' where id = ${newId}`);
+
+
+    const newEmp = (await dbConn.request().query(
+      `SELECT [id],[baseDatos],[cedula],[nombre],[correo],[telefonoUno],[telefonoDos],[paginaWeb],[direccion],[repNombre],
+      [repCedula],[repTelefono],[repCorreo],[estado]
+      FROM Empresa WHERE id = ${newId}`
+    )).recordset[0];
+
+
     return res.status(200).json({
       ok: true,
-      msg: 'Empresa ingresada correctamente.',
-      empresa: newEmp,
+      msg: 'Empresa ingresada correctamente',
+      newbaseDatos,
+      newEmp
     });
 
   } catch (error) {
-    await transaction.rollback();
+
     console.log(error.message);
+
+    await transaction.rollback();
+
     res.status(500).json({
       ok: false,
       msg: 'Error al procesar nuevo ingreso.',
       msgSystem: error.originalError.info.message
     });
 
-  } finally {
+  }
+  finally {
     await dbConn.close();
   }
+
 };
 
-const obtenerEmpresa = async (req = request, res = response) => {
+const onGetEmpresa = async (req = request, res = response) => {
 
   try {
 
@@ -115,15 +145,21 @@ const obtenerEmpresa = async (req = request, res = response) => {
     //TODO
     //* Validar que el usuario que realiza la solicitud tenga acceso al recurso
 
-    const myquery =
-      `SELECT id ` +
-      `,cedula ` +
-      `,nombre ` +
-      `,direccion ` +
-      `,baseDatos ` +
-      `,estado ` +
-      `FROM Empresa ` +
-      `${where}`;
+    const myquery = `SELECT [id]
+                      ,[baseDatos]
+                      ,[cedula]
+                      ,[nombre]
+                      ,[correo]
+                      ,[telefonoUno]
+                      ,[telefonoDos]
+                      ,[paginaWeb]
+                      ,[direccion]
+                      ,[repNombre]
+                      ,[repCedula]
+                      ,[repTelefono]
+                      ,[repCorreo]
+                      ,[estado]
+                  FROM [dbo].[Empresa] ${where}`;
 
     const pool = await sql.connect(configBD);
     const result = await pool.request().query(myquery);
@@ -153,9 +189,8 @@ const obtenerEmpresa = async (req = request, res = response) => {
   }
 }
 
-const actualizarEmpresa = async (req = request, res = response) => {
+const onUpdateEmpresa = async (req = request, res = response) => {
 
-  const uid = req.id;
   const id = req.params.id;
   let { nombre, correo, telefonoUno, telefonoDos, paginaWeb, direccion, repNombre, repCedula, repTelefono, repCorreo } = req.body;
 
@@ -168,21 +203,16 @@ const actualizarEmpresa = async (req = request, res = response) => {
   if (!id) {
     return res.status(400).json({
       ok: false,
-      msg: `EL id es requerido`
+      msg: `EL id es requerido.`
     });
   }
 
-  if (!await existeEmpresaById(id)) {
+  if (!await findEmpresaById(id)) {
     return res.status(404).json({
       ok: false,
       msg: `No se encuentran datos con el id ${id}`
     });
   }
-
-
-
-
-
 
   // sql connection
   const dbConn = new sql.ConnectionPool(configBD);
@@ -195,21 +225,68 @@ const actualizarEmpresa = async (req = request, res = response) => {
     await transaction.begin();
     const request = new sql.Request(transaction);
 
-    const afeected = await actualizaEmpresa(request, { id, nombre, correo, telefonoUno, telefonoDos, paginaWeb, direccion, repNombre, repCedula, repTelefono, repCorreo });
+    request
+      .input('pnombre', sql.VarChar, nombre)
+      .input('pcorreo', sql.VarChar, correo)
+      .input('ptelefonoUno', sql.VarChar, telefonoUno)
+      .input('ptelefonoDos', sql.VarChar, telefonoDos)
+      .input('ppaginaWeb', sql.VarChar, paginaWeb)
+      .input('pdireccion', sql.VarChar, direccion)
+      .input('prepNombre', sql.VarChar, repNombre)
+      .input('prepCedula', sql.VarChar, repCedula)
+      .input('prepTelefono', sql.VarChar, repTelefono)
+      .input('prepCorreo', sql.VarChar, repCorreo)
+
+    const result = await request
+      .query(`UPDATE [dbo].[Empresa]
+            SET [nombre] = @pnombre
+              ,[correo] = @pcorreo
+              ,[telefonoUno] = @ptelefonoUno
+              ,[telefonoDos] = @ptelefonoDos
+              ,[paginaWeb] = @ppaginaWeb
+              ,[direccion] = @pdireccion
+              ,[repNombre] = @prepNombre
+              ,[repCedula] = @prepCedula
+              ,[repTelefono] = @prepTelefono
+              ,[repCorreo] =    @prepCorreo   
+          WHERE id = ${id}`);
 
 
-    const myquery =
-      `SELECT * ` +      
-      `FROM Empresa ` +
-      `WHERE id = ${id}`;
-    const newEmp = (await request.query(myquery)).recordset[0];
+    if (result.rowsAffected != 1) {
+      return res.status(400).json({
+        ok: false,
+        msg: `Se actualizaron registros en la base de datos para ${id}.`,
+        empresa: newEmp,
+      });
+    }
+
+
+    const myquery = `SELECT [id]
+            ,[baseDatos]
+            ,[cedula]
+            ,[nombre]
+            ,[correo]
+            ,[telefonoUno]
+            ,[telefonoDos]
+            ,[paginaWeb]
+            ,[direccion]
+            ,[repNombre]
+            ,[repCedula]
+            ,[repTelefono]
+            ,[repCorreo]
+            ,[estado]
+          FROM [dbo].[Empresa]
+          WHERE id = ${id}`;
+
+
+    const empUpdated = (await request.query(myquery)).recordset[0];
 
     await transaction.commit();
 
     return res.status(200).json({
       ok: true,
-      msg: 'Empresa actualziada correctamente.',
-      empresa: newEmp,
+      msg: 'Empresa actualizada correctamente.',
+      empUpdated: empUpdated,
     });
 
   } catch (error) {
@@ -226,19 +303,13 @@ const actualizarEmpresa = async (req = request, res = response) => {
   }
 };
 
-const eliminarEmpresa = () => { }
+const onDeleteEmpresa = () => { }
 
 
-
-
-
-
-
-
-const existeEmpresaByCedula = async (cedula) => {
-  const myquery = `SELECT 1 FROM Empresa WHERE cedula = '${cedula}'`;
+const findEmpresaByCedula = async (cedula) => {
+  const query = `SELECT 1 FROM Empresa WHERE cedula = '${cedula}'`;
   const pool = await sql.connect(configBD);
-  const result = await pool.request().query(myquery);
+  const result = await pool.request().query(query);
   const { recordset } = result;
 
   if (recordset.length === 1)
@@ -247,7 +318,7 @@ const existeEmpresaByCedula = async (cedula) => {
     return false;
 }
 
-const existeEmpresaById = async (id) => {
+const findEmpresaById = async (id) => {
   const myquery = `SELECT 1 FROM Empresa WHERE id = '${id}'`;
   const pool = await sql.connect(configBD);
   const result = await pool.request().query(myquery);
@@ -259,113 +330,4 @@ const existeEmpresaById = async (id) => {
     return false;
 }
 
-const insertarEmpresa = async (request, emp) => {
-
-  try {
-    request
-      .input('pbaseDatos', sql.VarChar, emp.baseDatos)
-      .input('pcedula', sql.VarChar, emp.cedula)
-      .input('pnombre', sql.VarChar, emp.nombre)
-      .input('pcorreo', sql.VarChar, emp.correo)
-      .input('ptelefonoUno', sql.VarChar, emp.telefonoUno)
-      .input('ptelefonoDos', sql.VarChar, emp.telefonoDos)
-      .input('ppaginaWeb', sql.VarChar, emp.paginaWeb)
-      .input('pdireccion', sql.VarChar, emp.direccion)
-      .input('prepNombre', sql.VarChar, emp.repNombre)
-      .input('prepCedula', sql.VarChar, emp.repCedula)
-      .input('prepTelefono', sql.VarChar, emp.repTelefono)
-      .input('prepCorreo', sql.VarChar, emp.repCorreo)
-      .input('pestado', sql.VarChar, emp.estado)
-
-    const result = await request
-      .query('INSERT INTO Empresa ( baseDatos, cedula, nombre, correo, telefonoUno, telefonoDos, paginaWeb, direccion, repNombre, repCedula, repTelefono, repCorreo, estado ) ' +
-        'OUTPUT inserted.id VALUES ( @pbaseDatos, @pcedula,@pnombre,@pcorreo,@ptelefonoUno,@ptelefonoDos,@ppaginaWeb,@pdireccion,@prepNombre,@prepCedula,@prepTelefono,@prepCorreo,@pestado )');
-
-    const recordset = result.recordset;
-    return recordset[0].id;
-  } catch (error) {
-    console.log(`Error insertarEmpresa= ${error.message}`);
-    throw (error);
-  }
-
-}
-
-
-const actualizaEmpresa = async (request, emp) => {
-
-  emp.id = parseInt(emp.id);
-  try {
-    request
-      .input('pnombre', sql.VarChar, emp.nombre)
-      .input('pcorreo', sql.VarChar, emp.correo)
-      .input('ptelefonoUno', sql.VarChar, emp.telefonoUno)
-      .input('ptelefonoDos', sql.VarChar, emp.telefonoDos)
-      .input('ppaginaWeb', sql.VarChar, emp.paginaWeb)
-      .input('pdireccion', sql.VarChar, emp.direccion)
-      .input('prepNombre', sql.VarChar, emp.repNombre)
-      .input('prepCedula', sql.VarChar, emp.repCedula)
-      .input('prepTelefono', sql.VarChar, emp.repTelefono)
-      .input('prepCorreo', sql.VarChar, emp.repCorreo)
-
-    const result = await request
-      .query(`UPDATE [dbo].[Empresa]
-              SET [nombre] = @pnombre
-                ,[correo] = @pcorreo
-                ,[telefonoUno] = @ptelefonoUno
-                ,[telefonoDos] = @ptelefonoDos
-                ,[paginaWeb] = @ppaginaWeb
-                ,[direccion] = @pdireccion
-                ,[repNombre] = @prepNombre
-                ,[repCedula] = @prepCedula
-                ,[repTelefono] = @prepTelefono
-                ,[repCorreo] =    @prepCorreo   
-            WHERE id = ${emp.id}`);
-
-    return result.rowsAffected;
-
-  } catch (error) {
-    console.log(`Error actualizarEmpresa= ${error.message}`);
-    throw (error);
-  }
-
-}
-
-const insertarUsuarioEmpresa = async (request, usuarioId, empresaId) => {
-  try {
-    request
-      .input('p50', sql.Int, usuarioId)
-      .input('p51', sql.Int, empresaId);
-
-    const result = await request
-      .query('INSERT INTO UsuarioEmpresa ( usuarioId, empresaId ) ' +
-        'VALUES ( @p50, @p51 )');
-
-    return result.rowsAffected[0];
-  } catch (error) {
-    console.log(`Error insertarUsuarioEmpresa= ${error.message}`);
-    throw (error);
-  }
-
-}
-
-const crearBaseDatos = async (id, cedula) => {
-  try {
-
-    const pool = await sql.connect(configBD);
-    const result = await pool.request()
-      .input('id', sql.Int, id)
-      .input('cedula', sql.VarChar, cedula)
-      .execute(`SPCrearEmpresa`);
-    const newbaseDatos = result.recordset[0].nombre;
-
-    return newbaseDatos;
-
-  } catch (error) {
-    console.log(`Error insertarUsuarioEmpresa= ${error}`);
-    console.log(`Error insertarUsuarioEmpresa= ${error.message}`);
-    throw (error);
-  }
-
-}
-
-module.exports = { nuevoEmpresa, obtenerEmpresa, actualizarEmpresa, eliminarEmpresa };
+module.exports = { onNewEmpresa, onGetEmpresa, onUpdateEmpresa, onDeleteEmpresa };

@@ -5,12 +5,12 @@ const { validarJWT } = require('../middlewares/validarJWT');
 const {
     validateInputDataEmpresa,    
 } = require('../middlewares/validateInputData');
-const { nuevoEmpresa, obtenerEmpresa, actualizarEmpresa, eliminarEmpresa } = require("../controllers/empresaController");
+const { onNewEmpresa, onGetEmpresa, onUpdateEmpresa, onDeleteEmpresa } = require("../controllers/empresaController");
 
 empresaRouter.use(validarJWT);
-empresaRouter.post('/', validateInputDataEmpresa, nuevoEmpresa);
-empresaRouter.get('/:clave?/:valor?', obtenerEmpresa);
-empresaRouter.put('/:id',validateInputDataEmpresa,  actualizarEmpresa);
-empresaRouter.delete('/:id', eliminarEmpresa);
+empresaRouter.post('/', validateInputDataEmpresa, onNewEmpresa);
+empresaRouter.get('/:clave?/:valor?', onGetEmpresa);
+empresaRouter.put('/:id',validateInputDataEmpresa,  onUpdateEmpresa);
+empresaRouter.delete('/:id', onDeleteEmpresa);
 
 module.exports = { empresaRouter };
