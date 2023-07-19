@@ -3,6 +3,9 @@ const { generarJWT } = require('../helpers/jwt');
 const { response, request } = require("express");
 const bcryptjs = require('bcryptjs');
 const sql = require('mssql');
+const fs = require('fs');
+
+
 
 
 const onNewEmpresa = async (req = request, res = response) => {
@@ -79,6 +82,21 @@ const onNewEmpresa = async (req = request, res = response) => {
       [repCedula],[repTelefono],[repCorreo],[estado]
       FROM Empresa WHERE id = ${newId}`
     )).recordset[0];
+
+
+
+
+
+    //Nuevo contexto
+    const configBDNew = { ...configBD, database: newbaseDatos };
+    const dbConnNew = new sql.ConnectionPool(configBDNew);
+    await dbConnNew.connect();
+
+
+    const sqlBatch = fs.readFileSync("./database/scripts/createDataBase.sql", "utf-8");
+        
+    await dbConnNew.request()
+      .batch(sqlBatch);
 
 
     return res.status(200).json({
