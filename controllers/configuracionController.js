@@ -50,123 +50,38 @@ const onGetConfiguracion = async (req = request, res = response) => {
 
 const onUpdateConfiguracion = async (req = request, res = response) => {
 
-
-  return res.status(200).json({
-    ok: true,
-    msg: `onUpdateConfiguracion`    
-  });
-
-  const id = req.params.id;
-  let { nombre, correo, telefonoUno, telefonoDos, paginaWeb, direccion, repNombre, repCedula, repTelefono, repCorreo } = req.body;
-
-  telefonoUno = telefonoUno || '';
-  telefonoDos = telefonoDos || '';
-  paginaWeb = paginaWeb || '';
-  direccion = direccion || '';
-  repTelefono = repTelefono || '';
-
-  if (!id) {
-    return res.status(400).json({
-      ok: false,
-      msg: `EL id es requerido.`
-    });
-  }
-
-  if (!await findEmpresaById(id)) {
-    return res.status(404).json({
-      ok: false,
-      msg: `No se encuentran datos con el id ${id}`
-    });
-  }
-
-  // sql connection
-  await sql.close();
-  const dbConn = new sql.ConnectionPool(configBD);
-  await dbConn.connect();
-  let transaction;
-
   try {
+    const db = req.db;
+    const configuraciones = req.body;
+    let myquery = '';
 
-    transaction = new sql.Transaction(dbConn);
-    await transaction.begin();
-    const request = new sql.Request(transaction);
-
-    request
-      .input('pnombre', sql.VarChar, nombre)
-      .input('pcorreo', sql.VarChar, correo)
-      .input('ptelefonoUno', sql.VarChar, telefonoUno)
-      .input('ptelefonoDos', sql.VarChar, telefonoDos)
-      .input('ppaginaWeb', sql.VarChar, paginaWeb)
-      .input('pdireccion', sql.VarChar, direccion)
-      .input('prepNombre', sql.VarChar, repNombre)
-      .input('prepCedula', sql.VarChar, repCedula)
-      .input('prepTelefono', sql.VarChar, repTelefono)
-      .input('prepCorreo', sql.VarChar, repCorreo)
-
-    const result = await request
-      .query(`UPDATE [dbo].[Empresa]
-            SET [nombre] = @pnombre
-              ,[correo] = @pcorreo
-              ,[telefonoUno] = @ptelefonoUno
-              ,[telefonoDos] = @ptelefonoDos
-              ,[paginaWeb] = @ppaginaWeb
-              ,[direccion] = @pdireccion
-              ,[repNombre] = @prepNombre
-              ,[repCedula] = @prepCedula
-              ,[repTelefono] = @prepTelefono
-              ,[repCorreo] =    @prepCorreo   
-          WHERE id = ${id}`);
-
-
-    if (result.rowsAffected != 1) {
-      return res.status(400).json({
-        ok: false,
-        msg: `Se actualizaron registros en la base de datos para ${id}.`,
-        empresa: newEmp,
-      });
+    for (let i = 0; i < configuraciones.length; i++) {
+      const id = configuraciones[i].id;
+      const valor = configuraciones[i].valor;
+      myquery += `UPDATE [dbo].[Configuracion] SET [valor] = '${valor}' WHERE [id] = '${id}';
+`;
     }
 
+    const configBDNew = { ...configBD, database: db };
+    await sql.close();
+    const pool = await sql.connect(configBDNew);
 
-    const myquery = `SELECT [id]
-            ,[baseDatos]
-            ,[cedula]
-            ,[nombre]
-            ,[correo]
-            ,[telefonoUno]
-            ,[telefonoDos]
-            ,[paginaWeb]
-            ,[direccion]
-            ,[repNombre]
-            ,[repCedula]
-            ,[repTelefono]
-            ,[repCorreo]
-            ,[estado]
-          FROM [dbo].[Empresa]
-          WHERE id = ${id}`;
-
-
-    const empUpdated = (await request.query(myquery)).recordset[0];
-
-    await transaction.commit();
+    await pool.request().query(myquery);
 
     return res.status(200).json({
       ok: true,
-      msg: 'Empresa actualizada correctamente.',
-      empUpdated: empUpdated,
+      msg: `onUpdateConfiguracion`,
+      configuraciones
     });
-
   } catch (error) {
-    await transaction.rollback();
     console.log(error.message);
     res.status(500).json({
       ok: false,
-      msg: 'Error al procesar actualización de empresa.',
+      msg: 'Error al procesar la actualización de datos.',
       msgSystem: error.originalError.info.message
     });
-
-  } finally {
-    await dbConn.close();
   }
+
 };
 
 

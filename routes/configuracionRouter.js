@@ -9,6 +9,6 @@ const {  onGetConfiguracion, onUpdateConfiguracion } = require("../controllers/c
 
 configuracionRouter.use(validarJWT);
 configuracionRouter.get('/:clave?/:valor?', onGetConfiguracion);
-configuracionRouter.put('/:id',validateInputDataEmpresa,  onUpdateConfiguracion);
+configuracionRouter.put('/',  onUpdateConfiguracion);
 
 module.exports = { configuracionRouter };
