@@ -7,6 +7,7 @@ const { usuarioRouter } = require('./routes/usuarioRouter');
 const { empresaRouter } = require('./routes/empresaRouter');
 
 const { configuracionRouter } = require('./routes/configuracionRouter');
+const { ctaContableRouter } = require('./routes/ctaContableRouter');
 
 
 
@@ -20,6 +21,7 @@ app.use('/api/usuario', usuarioRouter);
 app.use('/api/empresa', empresaRouter);
 
 app.use('/api/configuracion', configuracionRouter);
+app.use('/api/ctaContable', ctaContableRouter);
 
 app.listen(process.env.PORT, () => {
     console.log(`Server running in port ${process.env.PORT}`);
