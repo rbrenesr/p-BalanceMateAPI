@@ -28,6 +28,7 @@ const onNewEmpresa = async (req = request, res = response) => {
     });
   }
 
+  await sql.close();
   const dbConn = new sql.ConnectionPool(configBD);
   await dbConn.connect();
 
@@ -85,16 +86,14 @@ const onNewEmpresa = async (req = request, res = response) => {
 
 
 
-
-
     //Nuevo contexto
     const configBDNew = { ...configBD, database: newbaseDatos };
+    await sql.close();
     const dbConnNew = new sql.ConnectionPool(configBDNew);
     await dbConnNew.connect();
 
-
     const sqlBatch = fs.readFileSync("./database/scripts/createDataBase.sql", "utf-8");
-        
+
     await dbConnNew.request()
       .batch(sqlBatch);
 
@@ -109,9 +108,7 @@ const onNewEmpresa = async (req = request, res = response) => {
   } catch (error) {
 
     console.log(error.message);
-
     await transaction.rollback();
-
     res.status(500).json({
       ok: false,
       msg: 'Error al procesar nuevo ingreso.',
@@ -157,28 +154,11 @@ const onGetEmpresa = async (req = request, res = response) => {
       where = `WHERE ${clave} like '%${valor}%'`;
 
 
+    const myquery = `SELECT [id],[baseDatos],[cedula],[nombre],[correo],[telefonoUno],[telefonoDos],[paginaWeb],
+                        [direccion],[repNombre],[repCedula],[repTelefono],[repCorreo],[estado]
+                      FROM [dbo].[Empresa] ${where}`;
 
-
-    const uid = req.id;
-    //TODO
-    //* Validar que el usuario que realiza la solicitud tenga acceso al recurso
-
-    const myquery = `SELECT [id]
-                      ,[baseDatos]
-                      ,[cedula]
-                      ,[nombre]
-                      ,[correo]
-                      ,[telefonoUno]
-                      ,[telefonoDos]
-                      ,[paginaWeb]
-                      ,[direccion]
-                      ,[repNombre]
-                      ,[repCedula]
-                      ,[repTelefono]
-                      ,[repCorreo]
-                      ,[estado]
-                  FROM [dbo].[Empresa] ${where}`;
-
+    await sql.close();
     const pool = await sql.connect(configBD);
     const result = await pool.request().query(myquery);
     const recordset = result.recordset;
@@ -232,7 +212,7 @@ const onUpdateEmpresa = async (req = request, res = response) => {
     });
   }
 
-  // sql connection
+  await sql.close();
   const dbConn = new sql.ConnectionPool(configBD);
   await dbConn.connect();
   let transaction;
@@ -279,24 +259,10 @@ const onUpdateEmpresa = async (req = request, res = response) => {
     }
 
 
-    const myquery = `SELECT [id]
-            ,[baseDatos]
-            ,[cedula]
-            ,[nombre]
-            ,[correo]
-            ,[telefonoUno]
-            ,[telefonoDos]
-            ,[paginaWeb]
-            ,[direccion]
-            ,[repNombre]
-            ,[repCedula]
-            ,[repTelefono]
-            ,[repCorreo]
-            ,[estado]
-          FROM [dbo].[Empresa]
-          WHERE id = ${id}`;
-
-
+    const myquery = `SELECT [id],[baseDatos],[cedula],[nombre],[correo],[telefonoUno],[telefonoDos],[paginaWeb],
+                        [direccion],[repNombre],[repCedula],[repTelefono],[repCorreo],[estado]
+                    FROM [dbo].[Empresa]
+                    WHERE id = ${id}`;
     const empUpdated = (await request.query(myquery)).recordset[0];
 
     await transaction.commit();
@@ -321,11 +287,10 @@ const onUpdateEmpresa = async (req = request, res = response) => {
   }
 };
 
-const onDeleteEmpresa = () => { }
-
 
 const findEmpresaByCedula = async (cedula) => {
   const query = `SELECT 1 FROM Empresa WHERE cedula = '${cedula}'`;
+  await sql.close();
   const pool = await sql.connect(configBD);
   const result = await pool.request().query(query);
   const { recordset } = result;
@@ -338,6 +303,7 @@ const findEmpresaByCedula = async (cedula) => {
 
 const findEmpresaById = async (id) => {
   const myquery = `SELECT 1 FROM Empresa WHERE id = '${id}'`;
+  await sql.close();
   const pool = await sql.connect(configBD);
   const result = await pool.request().query(myquery);
   const { recordset } = result;
@@ -348,4 +314,4 @@ const findEmpresaById = async (id) => {
     return false;
 }
 
-module.exports = { onNewEmpresa, onGetEmpresa, onUpdateEmpresa, onDeleteEmpresa };
+module.exports = { onNewEmpresa, onGetEmpresa, onUpdateEmpresa };

@@ -6,6 +6,8 @@ const { autenticarRouter } = require('./routes/autenticarRouter');
 const { usuarioRouter } = require('./routes/usuarioRouter');
 const { empresaRouter } = require('./routes/empresaRouter');
 
+const { configuracionRouter } = require('./routes/configuracionRouter');
+
 
 
 const app = express();
@@ -13,11 +15,11 @@ app.use(cors());
 app.use(express.static('public'));
 app.use(express.json());
 
-
 app.use('/api/autenticar', autenticarRouter);
 app.use('/api/usuario', usuarioRouter);
 app.use('/api/empresa', empresaRouter);
 
+app.use('/api/configuracion', configuracionRouter);
 
 app.listen(process.env.PORT, () => {
     console.log(`Server running in port ${process.env.PORT}`);

@@ -1,0 +1,309 @@
+{
+	"info": {
+		"_postman_id": "ebf30104-22fa-4303-b653-858de30cf5af",
+		"name": "BalanceMate",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "9674155"
+	},
+	"item": [
+		{
+			"name": "autenticar",
+			"item": [
+				{
+					"name": "autenticar",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{    \r\n    \"correo\":\"rbrenesr@gmail.com\",\r\n    \"contrasena\":\"123456\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:4000/api/autenticar",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"autenticar"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "autenticar/renovarToken",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-token",
+								"value": "{{x-token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:4000/api/autenticar/renovarToken",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"autenticar",
+								"renovarToken"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "autenticar/empresasUsuario",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-token",
+								"value": "{{x-token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:4000/api/autenticar/empresasUsuario",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"autenticar",
+								"empresasUsuario"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Usuario",
+			"item": [
+				{
+					"name": "usuario",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-token",
+								"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNjg4NzQ1MDg0LCJleHAiOjE2ODg3NjMwODR9._5kGiEd4YIVwn3g0aBYlw9zEABkkpmdQqoWcQniahd8",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"correo\":\"jperdez@gmail.com\",\r\n    \"contrasena\":\"123456\",\r\n    \"nombre\":\"Juan Perez S\",\r\n    \"direccion\":\"Perez Zeledon\",\r\n    \"telefono\":\"+506 8329 0634\",\r\n    \"estado\":1\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:4000/api/usuario",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"usuario"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "usuario",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-token",
+								"value": "{{x-token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:4000/api/usuario/nombre/r",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"usuario",
+								"nombre",
+								"r"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Empresa",
+			"item": [
+				{
+					"name": "empresa",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-token",
+								"value": "{{x-token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"cedula\":\"000212\",  \r\n    \"nombre\":\"BalanceMate S.A.\",\r\n    \"correo\":\"gerencia@balance.com\",\r\n    \"telefonoUno\":\"+506 8329 0634\",\r\n    \"telefonoDos\":\"+506 85050100\",\r\n    \"paginaWeb\":\"https://www.balancemate.com\",\r\n    \"direccion\":\"SJ\",    \r\n    \"repNombre\":\"Rafael Brenes\",\r\n    \"repCedula\":\"304140227 \",\r\n    \"repTelefono\":\"+506 8329 0634\",\r\n    \"repCorreo\":\"rbrenesr@gmail.com\"\r\n}\r\n\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:4000/api/empresa",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"empresa"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "empresa",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "x-token",
+								"value": "{{x-token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"cedula\":\"304140227\",        \r\n    \"nombre\":\"Balance Mate S.A.\",\r\n    \"correo\":\"balanca@balance.com\",\r\n    \"telefonoUno\":\"+506 8329 0634\",\r\n    \"telefonoDos\":\"+506 85050100\",\r\n    \"paginaWeb\":\"https://www.balancemate.com\",\r\n    \"direccion\":\"SJ\",    \r\n    \"repNombre\":\"Rafael Brenes\",\r\n    \"repCedula\":\"304140227 \",\r\n    \"repTelefono\":\"+506 8329 0634\",\r\n    \"repCorreo\":\"rbrenesr@gmail.com\"\r\n}\r\n\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:4000/api/empresa/74",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"empresa",
+								"74"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "empresa",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-token",
+								"value": "{{x-token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:4000/api/empresa/",
+							"host": [
+								"localhost"
+							],
+							"port": "4000",
+							"path": [
+								"api",
+								"empresa",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

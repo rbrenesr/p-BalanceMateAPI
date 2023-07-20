@@ -9,6 +9,20 @@ CREATE TABLE [dbo].[Configuracion](
 ) ON [PRIMARY]
 ALTER TABLE [dbo].[Configuracion] ADD  CONSTRAINT [DF_Configuracion_valor]  DEFAULT ('') FOR [valor]
 
+SET QUOTED_IDENTIFIER ON
+CREATE TABLE [dbo].[Moneda](
+	[id] [varchar](3) NOT NULL,
+	[nombre] [varchar](50) NOT NULL,
+	[simbolo] [varchar](1) NOT NULL,
+	[isLocal] [bit] NOT NULL,
+ CONSTRAINT [PK_Moneda] PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+ALTER TABLE [dbo].[Moneda] ADD  CONSTRAINT [DF_Moneda_nombre]  DEFAULT ('') FOR [nombre]
+ALTER TABLE [dbo].[Moneda] ADD  CONSTRAINT [DF_Moneda_simbolo]  DEFAULT ('L') FOR [simbolo]
+ALTER TABLE [dbo].[Moneda] ADD  CONSTRAINT [DF_Moneda_isLocal]  DEFAULT ((1)) FOR [isLocal]
 
 SET QUOTED_IDENTIFIER ON
 CREATE TABLE [dbo].[Catalogo](
@@ -20,7 +34,6 @@ CREATE TABLE [dbo].[Catalogo](
 	[id] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
-ALTER TABLE [dbo].[Catalogo] ADD  CONSTRAINT [DF_Catalogo_id]  DEFAULT ('') FOR [id]
 ALTER TABLE [dbo].[Catalogo] ADD  CONSTRAINT [DF_Catalogo_tipo]  DEFAULT ('ACT') FOR [tipo]
 ALTER TABLE [dbo].[Catalogo] ADD  CONSTRAINT [DF_Catalogo_descripcion]  DEFAULT ('') FOR [descripcion]
 ALTER TABLE [dbo].[Catalogo]  WITH CHECK ADD CHECK  (([tipo]='ORD' OR [tipo]='GAS' OR [tipo]='COS' OR [tipo]='ING' OR [tipo]='PAT' OR [tipo]='PAS' OR [tipo]='ACT'))
@@ -73,7 +86,7 @@ ALTER TABLE [dbo].[Tercero] ADD  CONSTRAINT [DF_Tercero_email]  DEFAULT ('') FOR
 ALTER TABLE [dbo].[Tercero] ADD  CONSTRAINT [DF_Tercero_telefono]  DEFAULT ('') FOR [telefono]
 ALTER TABLE [dbo].[Tercero] ADD  CONSTRAINT [DF_Tercero_direccion]  DEFAULT ('') FOR [direccion]
 ALTER TABLE [dbo].[Tercero] ADD  CONSTRAINT [DF_Tercero_observacion]  DEFAULT ('') FOR [observacion]
-ALTER TABLE [dbo].[Tercero] ADD  CONSTRAINT [DF_Tercero_estado]  DEFAULT ('ACTIVO') FOR [estado]
+ALTER TABLE [dbo].[Tercero] ADD  CONSTRAINT [DF_Tercero_estado]  DEFAULT ('ACT') FOR [estado]
 ALTER TABLE [dbo].[Tercero]  WITH CHECK ADD CHECK  (([tipo]='CLI' OR [tipo]='PRV' OR [tipo]='OTR'))
 
 
@@ -83,7 +96,7 @@ CREATE TABLE [dbo].[Asiento](
 	[idTipoAsiento] [varchar](10) NOT NULL,
 	[fecha] [datetime] NOT NULL,
 	[concepto] [varchar](250) NOT NULL,
-	[moneda] [varchar](3) NOT NULL,
+	[idMoneda] [varchar](3) NOT NULL,
 	[tipoTasa] [varchar](1) NOT NULL,
 	[tasa] [decimal](20, 2) NOT NULL,
 	[totalDebe] [decimal](20, 2) NOT NULL,
@@ -98,16 +111,18 @@ CREATE TABLE [dbo].[Asiento](
 ) ON [PRIMARY]
 ALTER TABLE [dbo].[Asiento] ADD  CONSTRAINT [DF_Asiento_fecha]  DEFAULT (getdate()) FOR [fecha]
 ALTER TABLE [dbo].[Asiento] ADD  CONSTRAINT [DF_Asiento_concepto]  DEFAULT ('') FOR [concepto]
-ALTER TABLE [dbo].[Asiento] ADD  CONSTRAINT [DF_Asiento_moneda]  DEFAULT ('') FOR [moneda]
 ALTER TABLE [dbo].[Asiento] ADD  CONSTRAINT [DF_Asiento_tipoTasa]  DEFAULT ('V') FOR [tipoTasa]
 ALTER TABLE [dbo].[Asiento] ADD  CONSTRAINT [DF_Asiento_tasa]  DEFAULT ((1.00)) FOR [tasa]
 ALTER TABLE [dbo].[Asiento] ADD  CONSTRAINT [DF_Asiento_totalDebe]  DEFAULT ((0.00)) FOR [totalDebe]
 ALTER TABLE [dbo].[Asiento] ADD  CONSTRAINT [DF_Asiento_totalHaber]  DEFAULT ((0.00)) FOR [totalHaber]
 ALTER TABLE [dbo].[Asiento] ADD  CONSTRAINT [DF_Asiento_totalDebeL]  DEFAULT ((0.00)) FOR [totalDebeL]
 ALTER TABLE [dbo].[Asiento] ADD  CONSTRAINT [DF_Asiento_totalHaberL]  DEFAULT ((0.00)) FOR [totalHaberL]
-ALTER TABLE [dbo].[Asiento]  WITH CHECK ADD  CONSTRAINT [FK_Asiento_TipoAsiento] FOREIGN KEY([idTipoAsiento])
+ALTER TABLE [dbo].[Asiento]  WITH CHECK ADD  CONSTRAINT [FK_Asiento_TipoAsiento] FOREIGN KEY([idTipoAsiento]) 
 REFERENCES [dbo].[TipoAsiento] ([id])
 ALTER TABLE [dbo].[Asiento] CHECK CONSTRAINT [FK_Asiento_TipoAsiento]
+ALTER TABLE [dbo].[Asiento]  WITH CHECK ADD  CONSTRAINT [FK_Asiento_Moneda] FOREIGN KEY([idMoneda])
+REFERENCES [dbo].[Moneda] ([id])
+ALTER TABLE [dbo].[Asiento] CHECK CONSTRAINT [FK_Asiento_Moneda]
 ALTER TABLE [dbo].[Asiento]  WITH CHECK ADD CHECK  (([tipoTasa]='V' OR [tipoTasa]='C'))
 
 
@@ -174,6 +189,11 @@ VALUES
 	('PerFecInactividad', ''),
 	('PerFecIni', '')
 
+INSERT INTO [dbo].[Moneda]([id], [nombre], [simbolo], [isLocal])
+VALUES
+	('CRC', 'Colones',	'C',	1),
+	('LPM', 'Lempiras',	'L',	0),
+	('USA', 'Dolares',	'D',	0)
 
 INSERT INTO [dbo].[Catalogo]  ([id],[tipo],[descripcion])
 VALUES 
@@ -862,3 +882,20 @@ VALUES
 	('PRV','111240871','Linsy Trigueros Solano','info@clinicaalquimia.cr','60301368','SAN JOSÉ - DESAMPARADOS - DESAMPARADOS,','Ninguna','ACT'),
 	('PRV','112180009','Juan Mauricio Valverde Ramirez','jmauvalverde@gmail.com','83092368','SAN JOSÉ - ASERRI - ASERRI - Poás,','Ninguna','ACT'),
 	('PRV','401040147','Estela Chacón Ramirez','carlosmo12@yahoo.com','88121481','SAN JOSÉ - TIBAS - SAN JUAN,','Ninguna','ACT')
+
+
+INSERT INTO [dbo].[Asiento]([id],[idTipoAsiento],[fecha],[concepto],[idMoneda],[tipoTasa],[tasa],[totalDebe],[totalHaber],[totalDebeL],[totalHaberL],[idUsuario])
+VALUES
+	('C03-20230719-00001',	'C03',	'2023-07-17 23:07:33.027',	'Factura',	'CRC',	'V',	1.00,	55000.00,	55000.00,	55000.00,	55000.00,	1),
+	('C03-20230719-00002',	'C03',	'2023-07-18 23:07:33.027',	'Nota Credito',	'USA',	'V',	545.00,	55.00,	55.00,	29975.00,	29975.00,	1),
+	('C03-20230719-00003',	'C03',	'2023-07-19 23:07:33.027',	'Factura',	'CRC',	'V',	1.00,	55000.00,	55000.00,	55000.00,	55000.00,	1)
+	
+	
+INSERT INTO [dbo].[AsientoDetalle]([id],[idAsiento],[idCatalogo],[observaciones],[idTipoDocumento],[numeroDocumento],[idTercero],[moneda],[tipoTasa],[tasa],[totalDebe],[totalHaber],[totalDebeL],[totalHaberL],[idUsuario])
+VALUES
+	(1,'C03-20230719-00001','1102006','Facturacion','C03','012436546',18,'CRC','V',1.00,	55000.00,0.00,55000.00,0.00,1),
+	(2,'C03-20230719-00001','1104004','Facturacion','C03','012436546',18,'CRC','V',1.00,	0.00,55000.00,0.00,55000.00,1),
+	(1,'C03-20230719-00002','1102006','Facturacion','C03','012436546',18,'CRC','V',1.00,	55000.00,0.00,55000.00,0.00,1),
+	(2,'C03-20230719-00002','1104004','Facturacion','C03','012436546',18,'CRC','V',1.00,	0.00,55000.00,0.00,55000.00,1),
+	(1,'C03-20230719-00003','1102006','Facturacion','C03','012436546',18,'CRC','V',1.00,	55000.00,0.00,55000.00,0.00,1),
+	(2,'C03-20230719-00003','1104004','Facturacion','C03','012436546',18,'CRC','V',1.00,	0.00,55000.00,0.00,55000.00,1)

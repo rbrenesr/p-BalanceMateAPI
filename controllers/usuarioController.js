@@ -22,43 +22,7 @@ const nuevoUsuario = async (req = request, res = response) => {
       });
     }
 
-    /**
-     * Forma I de trabajar los valores de entrada
-     * 
-     
-        var cols = ['correo', 'contrasena', 'nombre', 'direccion', 'telefono', 'estado'];
-        var vals = [correo, contrasena, nombre, direccion, telefono, estado];
-    
-        const pool = await sql.connect(configBD);
-        const request = pool.request();
-    
-        for (let i = 0; i < vals.length; i++)
-          request.input(`param_${i}`, vals[i]);  //if you skip the parametertype, mssql will guess it from the value
-    
-         const sqlquery = `insert into Usuario(${cols}) values (  ${  vals.map(  (_,i) => `@param_${i}`)  }    )`;
-         const result = await request.query(sqlquery);
-     */
-
-    /**
-     * Forma II de trabajar los valores de entrada
-     * 
-     
-        const pool = await sql.connect(configBD);
-        const resul = await pool.request()
-          .input('u_correo', sql.VarChar, correo)
-          .input('u_contrasena', sql.VarChar, contrasena)
-          .input('u_nombre', sql.VarChar, nombre)
-          .input('u_direccion', sql.VarChar, direccion)
-          .input('u_telefono', sql.Char, telefono)
-          .input('u_estado', sql.TinyInt, estado)
-          .query('INSERT INTO Usuario ( u_correo, u_contrasena, u_nombre, u_direccion, u_telefono, u_estado ) ' +
-            'VALUES ( @u_correo, @u_contrasena, @u_nombre, @u_direccion, @u_telefono, @u_estado )');
-    */
-
-    /**
-     * Forma III de trabajar los valores de entrada
-     * 
-     */
+    await sql.close();
     const pool = await sql.connect(configBD);
     let result = await pool.request()
       .input('p1', sql.VarChar, correo)
@@ -74,18 +38,8 @@ const nuevoUsuario = async (req = request, res = response) => {
     let recordset = result.recordset;
     const newId = recordset[0].id;
 
-
-
-    const myquery =
-      `SELECT id ` +
-      `,correo ` +
-      `,nombre ` +
-      `,direccion ` +
-      `,telefono ` +
-      `,estado ` +
-      `FROM Usuario ` +
-      `WHERE id = ${newId}`;
-
+    const myquery =`SELECT id ,correo ,nombre ,direccion ,telefono ,estado FROM Usuario 
+                    WHERE id = ${newId}`;
 
     result = await pool.request().query(myquery);
     recordset = result.recordset;
@@ -111,58 +65,6 @@ const nuevoUsuario = async (req = request, res = response) => {
   }
 
 }
-
-// const obtenerUsuarioPorId = async (req = request, res = response) => {
-
-//   try {
-
-//     const id = req.params.id;
-//     const uid = req.id;
-
-//     //TODO
-//     //* Validar que el usuario que realiza la solicitud tenga acceso al recurso
-
-//     const myquery =
-//       `SELECT id ` +
-//       `,correo ` +
-//       `,nombre` +
-//       `,direccion ` +
-//       `,telefono ` +
-//       `,estado ` +
-//       `FROM Usuario ` +
-//       `WHERE id = ${id}`;
-
-//     const pool = await sql.connect(configBD);
-//     const result = await pool.request().query(myquery);
-//     const recordset = result.recordset;
-
-
-//     if (recordset.length < 1) {
-//       return res.status(200).json({
-//         ok: false,
-//         msg: `No existe usuarios con el id = ${id}`,
-//         usuario: recordset[0],
-//       });
-//     }
-
-
-//     return res.status(200).json({
-//       ok: true,
-//       msg: `Usuario seleccionado= ${id}`,
-//       usuario: recordset[0],
-//     });
-
-//   } catch (error) {
-//     console.log(error.message);
-//     res.status(500).json({
-//       ok: false,
-//       msg: 'Error al procesar la selección del usuario.',
-//       msgSystem: error.originalError.info.message
-//     });
-//   }
-
-
-// }
 
 const obtenerUsuario = async (req = request, res = response) => {
 
@@ -195,39 +97,11 @@ const obtenerUsuario = async (req = request, res = response) => {
     else
       where = `WHERE ${clave} like '%${valor}%'`;
 
-    /**
-        if (!clave) { clave = 'u_nombre'; }
-        else {
-    
-          const claveMapping = {
-            'nombre': 'u_nombre',
-            'correo': 'u_correo',
-            'telefono': 'u_telefono',
-            'direccion': 'u_direccion',
-          };
-    
-          if (claveMapping.hasOwnProperty(clave)) {
-            clave = claveMapping[clave];
-          }
-    
-        }
-     *
-     */
-
-    const uid = req.id;
-    //TODO
-    //* Validar que el usuario que realiza la solicitud tenga acceso al recurso
-
-    const myquery =
-      `SELECT id ` +
-      `,correo ` +
-      `,nombre ` +
-      `,direccion ` +
-      `,telefono ` +
-      `,estado ` +
-      `FROM Usuario ` +
-      `${where}`;
-
+   
+    const myquery =`SELECT id ,correo ,nombre ,direccion ,telefono ,estado 
+                    FROM Usuario ${where}`;
+                    
+    await sql.close();
     const pool = await sql.connect(configBD);
     const result = await pool.request().query(myquery);
     const recordset = result.recordset;
@@ -261,6 +135,7 @@ const eliminarUsuario = () => { }
 
 const existeElUsuario = async (correo) => {
   const myquery = `SELECT 1 FROM Usuario WHERE correo = '${correo}'`;
+  await sql.close();
   const pool = await sql.connect(configBD);
   const result = await pool.request().query(myquery);
   const { recordset } = result;
@@ -271,4 +146,4 @@ const existeElUsuario = async (correo) => {
     return false;
 }
 
-module.exports = { nuevoUsuario, obtenerUsuario, actualizarUsuario, eliminarUsuario };
+module.exports = { nuevoUsuario, obtenerUsuario };

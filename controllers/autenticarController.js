@@ -10,17 +10,14 @@ const autenticar = async (req = request, res = response) => {
 
     const { correo, contrasena } = req.body;
 
-    const myquery = `SELECT ` +
-      `id ` +
-      `,correo ` +
-      `,contrasena ` +
-      `,nombre ` +
-      `,estado ` +
-      `FROM [dbo].[Usuario] ` +
-      `WHERE correo = '${correo}' AND contrasena = '${contrasena}'`;
+    const myquery = `SELECT id ,correo ,contrasena ,nombre ,estado 
+                      FROM [dbo].[Usuario] 
+                      WHERE correo = '${correo}' AND contrasena = '${contrasena}'`;
+
+    await sql.close();
     const pool = await sql.connect(configBD);
     const usuario = await pool.request().query(myquery);
-    const { recordsets, recordset } = usuario;
+    const { recordset } = usuario;
 
     if (recordset.length != 1) {
       return res.status(401).json({
@@ -31,7 +28,7 @@ const autenticar = async (req = request, res = response) => {
 
     const _id = recordset[0].id;
     const _nombre = recordset[0].u_nombre;
-    const token = await generarJWT(_id, _nombre);
+    const token = await generarJWT(_id, _nombre, configBD.database);
     const { contrasena: contrasenaUsuario, ...usuarioReturn } = recordset[0];
 
     res.status(200).json({
@@ -55,10 +52,14 @@ const renovarToken = async (req = request, res = response) => {
   try {
 
     const { id, name } = req;
-    const myquery = `SELECT  1 FROM Usuario WHERE id = ${id}`;
+    const db = req.params.id;
+
+    const myquery = `SELECT 1 FROM Usuario WHERE id = ${id}`;
+
+    await sql.close();
     const pool = await sql.connect(configBD);
     const usuario = await pool.request().query(myquery);
-    const { recordsets, recordset } = usuario;
+    const { recordset } = usuario;
 
     if (recordset.length != 1) {
       return res.status(401).json({
@@ -67,7 +68,7 @@ const renovarToken = async (req = request, res = response) => {
       });
     }
 
-    const token = await generarJWT(id, name);
+    const token = await generarJWT(id, name, db);
 
     res.status(200).json({
       ok: true,
@@ -90,21 +91,16 @@ const obtenerEmpresasUsuario = async (req, res = response) => {
 
     const { id } = req;
 
-    const myquery = `SELECT ` +
-      ` E.id ` +
-      `,E.cedula ` +
-      `,E.nombre ` +
-      `,E.direccion ` +
-      `,E.baseDatos ` +
-      `,E.estado ` +
-      `FROM Empresa E ` +
-      `JOIN UsuarioEmpresa EU on E.id = EU.empresaId ` +
-      `JOIN Usuario U on U.id = EU.usuarioId ` +
-      `WHERE U.id = ${id} `;
-
+    const myquery = `SELECT E.id ,E.cedula ,E.nombre ,E.direccion ,E.baseDatos ,E.estado 
+                      FROM Empresa E 
+                      JOIN UsuarioEmpresa EU on E.id = EU.empresaId 
+                      JOIN Usuario U on U.id = EU.usuarioId 
+                      WHERE U.id = ${id} `;
+      
+    await sql.close();
     const pool = await sql.connect(configBD);
     const empresa = await pool.request().query(myquery);
-    const { recordsets, recordset } = empresa;
+    const { recordset } = empresa;
 
     if (recordset.length < 1) {
       return res.status(204).json({
@@ -115,7 +111,7 @@ const obtenerEmpresasUsuario = async (req, res = response) => {
 
     res.status(200).json({
       ok: true,
-      empresas: recordset,      
+      empresas: recordset,
     });
   }
 

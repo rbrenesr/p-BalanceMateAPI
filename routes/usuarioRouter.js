@@ -12,7 +12,5 @@ usuarioRouter.use(validarJWT);
 
 usuarioRouter.post('/', validateInputDataNuevoUsuario, nuevoUsuario);
 usuarioRouter.get('/:clave?/:valor?', obtenerUsuario);
-usuarioRouter.put('/:id', actualizarUsuario);
-usuarioRouter.delete('/:id', eliminarUsuario);
 
 module.exports = { usuarioRouter };
