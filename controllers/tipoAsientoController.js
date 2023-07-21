@@ -1,14 +1,10 @@
 const { configBD } = require('../database/config');
-const { generarJWT } = require('../helpers/jwt');
 const { response, request } = require("express");
-const bcryptjs = require('bcryptjs');
 const sql = require('mssql');
-const fs = require('fs');
-
 
 let configBDConn = '';
 
-const onGetCtaContable = async (req, res = response) => {
+const onGetTipoAsiento = async (req, res = response) => {
 
     try {
 
@@ -20,9 +16,9 @@ const onGetCtaContable = async (req, res = response) => {
         let where = '';
 
         if (!valor) valor = '';
-        if (!clave) clave = 'descripcion';
+        if (!clave) clave = 'nombre';
 
-        const cols = ['id', 'tipo', 'descripcion'];
+        const cols = ['id', 'nombre'];
         if (!cols.includes(clave)) {
             return res.status(422).json({
                 ok: false,
@@ -43,15 +39,15 @@ const onGetCtaContable = async (req, res = response) => {
             where = `WHERE ${clave} like '%${valor}%'`;
 
 
-        const myquery = `SELECT [id], [tipo], [descripcion] 
-        FROM [dbo].[Catalogo] ${where}`;
+        const myquery = `SELECT [id], [nombre] 
+        FROM [dbo].[TipoAsiento] ${where}`;
 
         await sql.close();
         const pool = await sql.connect(configBDConn);
         const result = await pool.request().query(myquery);
-        const recordset = result.recordset;
+        const rsTipoAsiento = result.recordset;
 
-        if (recordset.length < 1) {
+        if (rsTipoAsiento.length < 1) {
             return res.status(200).json({
                 ok: false,
                 msg: `No existe datos para la búsqueda proporcionada por = ${valor} en ${clave}`,
@@ -61,8 +57,8 @@ const onGetCtaContable = async (req, res = response) => {
 
         return res.status(200).json({
             ok: true,
-            msg: `Ctas Contables`,
-            empresa: recordset,
+            msg: `Tipos de Asiento`,
+            tipoAsiento: rsTipoAsiento,
         });
 
     } catch (error) {
@@ -75,26 +71,26 @@ const onGetCtaContable = async (req, res = response) => {
     }
 
 }
-const onNewCtaContable = async (req, res = response) => {
+const onNewTipoAsiento = async (req, res = response) => {
 
     const db = req.db;
     configBDConn = { ...configBD, database: db };
 
-    const { id, tipo, descripcion } = req.body;
+    const { id, nombre } = req.body;
 
-    if (!id || !tipo || !descripcion) {
+    if (!id || !nombre) {
         return res.status(400).json({
             ok: false,
-            msg: 'Valores requeridos no proporcionados { id, tipo, descripcion }.',
+            msg: 'Valores requeridos no proporcionados { id, nombre }.',
         });
     }
 
     try {
 
-        if (await existeCta(id)) {
+        if (await existeTipoAsiento(id)) {
             return res.status(409).json({
                 ok: false,
-                msg: `La cuenta ${id} ya se encuentra registrada.`
+                msg: `La tipo asiento ${id} ya se encuentra registrada.`
             });
         }
 
@@ -102,17 +98,16 @@ const onNewCtaContable = async (req, res = response) => {
         const pool = await sql.connect(configBDConn);
         let result = await pool.request()
             .input('id', sql.VarChar, id)
-            .input('tipo', sql.VarChar, tipo)
-            .input('descripcion', sql.VarChar, descripcion)
-            .query('INSERT INTO [dbo].[Catalogo] ( id, tipo, descripcion ) ' +
-                'OUTPUT inserted.id VALUES ( @id, @tipo, @descripcion )');
+            .input('nombre', sql.VarChar, nombre)            
+            .query('INSERT INTO [dbo].[TipoAsiento] ( id, nombre ) ' +
+                'OUTPUT inserted.id VALUES ( @id, @nombre )');
 
-        const newCtaId = result.recordset[0].id;
+        const newTipoAsientoId = result.recordset[0].id;
 
         return res.status(200).json({
             ok: true,
-            msg: 'Cuenta ingresada correctamente.',
-            id: newCtaId
+            msg: 'Tipo Asiento ingresado correctamente.',
+            id: newTipoAsientoId
 
         });
 
@@ -120,49 +115,48 @@ const onNewCtaContable = async (req, res = response) => {
         console.log(error.message);
         res.status(500).json({
             ok: false,
-            msg: 'Error al procesar el ingreso del nuevo cuenta.',
+            msg: 'Error al procesar el ingreso del nuevo tipo de asiento.',
             msgSystem: error.originalError.info.message
         });
     }
 
 
 }
-const onUpdateCtaContable = async(req, res = response) => {
+const onUpdateTipoAsiento = async(req, res = response) => {
 
     const db = req.db;
-    const ctaId = req.params.id;
+    const tipoAsientoId = req.params.id;
     configBDConn = { ...configBD, database: db };
 
 
-    const { tipo, descripcion } = req.body;
+    const { nombre } = req.body;
 
-    if (!tipo || !descripcion) {
+    if (!nombre) {
         return res.status(400).json({
             ok: false,
-            msg: 'Valores requeridos no proporcionados { tipo, descripcion }.',
+            msg: 'Valores requeridos no proporcionados { nombre }.',
         });
     }
 
     try {
 
-        if (!await existeCta(ctaId)) {
+        if (!await existeTipoAsiento(tipoAsientoId)) {
             return res.status(409).json({
                 ok: false,
-                msg: `La cuenta ${ctaId} que desea actualizar no se encuentra registrada.`
+                msg: `El tipo asiento ${tipoAsientoId} que desea actualizar no se encuentra registrado.`
             });
         }
 
         await sql.close();
         const pool = await sql.connect(configBDConn);
         let result = await pool.request()                       
-            .query(`UPDATE[dbo].[Catalogo] SET 
-                        tipo = '${tipo}', 
-                        descripcion = '${descripcion}'
-                    WHERE id = '${ctaId}'`);
+            .query(`UPDATE[dbo].[TipoAsiento] SET 
+                        nombre = '${nombre}'
+                    WHERE id = '${tipoAsientoId}'`);
 
         return res.status(200).json({
             ok: true,
-            msg: 'Cuenta actualizada correctamente.',            
+            msg: 'Tipo Asiento actualizado correctamente.',            
 
         });
 
@@ -170,54 +164,56 @@ const onUpdateCtaContable = async(req, res = response) => {
         console.log(error.message);
         res.status(500).json({
             ok: false,
-            msg: 'Error al procesar la actualización de la cuenta.',
+            msg: 'Error al procesar la actualización del tipo de asiento.',
             msgSystem: error.originalError.info.message
         });
     }
 }
-const onDeleteCtaContable = async (req, res = response) => {
+const onDeleteTipoAsiento = async (req, res = response) => {
+
+
+
+
     const db = req.db;
-    const ctaId = req.params.id;
+    const tipoAsientoId = req.params.id;
     configBDConn = { ...configBD, database: db };
 
-  
-
     try {
 
-        if (!await existeCta(ctaId)) {
+        if (!await existeTipoAsiento(tipoAsientoId)) {
             return res.status(409).json({
                 ok: false,
-                msg: `La cuenta ${ctaId} que desea eliminar no se encuentra registrada.`
+                msg: `El tipo asiento ${tipoAsientoId} que desea eliminar no se encuentra registrado.`
             });
         }
 
         await sql.close();
         const pool = await sql.connect(configBDConn);
         let result = await pool.request()                       
-            .query(`DELETE FROM [dbo].[Catalogo] 
-                    WHERE id = '${ctaId}'`);
+            .query(`DELETE FROM [dbo].[TipoAsiento] 
+                    WHERE id = '${tipoAsientoId}'`);
 
         return res.status(200).json({
             ok: true,
-            msg: 'Cuenta eliminada correctamente.',            
+            msg: 'Tipo Asiento eliminado correctamente.',            
 
         });
-
     } catch (error) {
         console.log(error.message);
         res.status(500).json({
             ok: false,
-            msg: `Error al procesar la eliminación de la cuenta ${ ctaId }`,
+            msg: 'Error al procesar la eliminación del tipo de asiento.',
             msgSystem: error.originalError.info.message
         });
     }
+
 }
 
 
 
-const existeCta = async (id) => {
+const existeTipoAsiento = async (id) => {
 
-    const myquery = `SELECT [id] ,[tipo] ,[descripcion] FROM [dbo].[Catalogo] WHERE id = '${id}'`;
+    const myquery = `SELECT [id] ,[nombre] FROM [dbo].[TipoAsiento] WHERE id = '${id}'`;
 
     await sql.close();
     const pool = await sql.connect(configBDConn);
@@ -231,4 +227,4 @@ const existeCta = async (id) => {
 }
 
 
-module.exports = { onGetCtaContable, onNewCtaContable, onUpdateCtaContable, onDeleteCtaContable, };
+module.exports = { onGetTipoAsiento, onNewTipoAsiento, onUpdateTipoAsiento, onDeleteTipoAsiento, };
