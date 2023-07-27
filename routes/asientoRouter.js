@@ -6,11 +6,12 @@ const {
     validateInputDataEmpresa,    
 } = require('../middlewares/validateInputData');
 
-const {  onGetAsiento, onGetAsientos, onNewAsiento, onUpdateAsiento, onDeleteAsiento } = require("../controllers/asientoController");
+
+const {  onGetAsiento, onNewAsiento, onUpdateAsiento, onDeleteAsiento } = require("../controllers/asientoController");
 
 asientoRouter.use(validarJWT);
 
-asientoRouter.get('/:clave?/:valor?', onGetAsientos);
+asientoRouter.get('/:clave?/:valor?', onGetAsiento);
 asientoRouter.post('/',  onNewAsiento);
 asientoRouter.put('/:id',  onUpdateAsiento);
 asientoRouter.delete('/:id',  onDeleteAsiento);
