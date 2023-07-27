@@ -11,6 +11,8 @@ const { ctaContableRouter } = require('./routes/ctaContableRouter');
 const { tipoAsientoRouter } = require('./routes/tipoAsientoRouter');
 const { tipoDocumentoRouter } = require('./routes/tipoDocumentoRouter');
 
+const { asientoRouter } = require('./routes/asientoRouter');
+
 
 
 const app = express();
@@ -26,6 +28,7 @@ app.use('/api/configuracion', configuracionRouter);
 app.use('/api/ctaContable', ctaContableRouter);
 app.use('/api/tipoAsiento', tipoAsientoRouter);
 app.use('/api/tipoDocumento', tipoDocumentoRouter);
+app.use('/api/asiento', asientoRouter);
 
 app.listen(process.env.PORT, () => {
     console.log(`Server running in port ${process.env.PORT}`);

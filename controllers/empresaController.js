@@ -31,11 +31,10 @@ const onNewEmpresa = async (req = request, res = response) => {
   await sql.close();
   const dbConn = new sql.ConnectionPool(configBD);
   await dbConn.connect();
+  const transaction = new sql.Transaction(dbConn);
+  await transaction.begin();
 
   try {
-
-    const transaction = new sql.Transaction(dbConn);
-    await transaction.begin();
 
     const empresaResult = await new sql.Request(transaction)
       .input('baseDatos', sql.VarChar, baseDatos)
