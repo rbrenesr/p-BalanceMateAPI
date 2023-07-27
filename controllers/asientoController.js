@@ -249,7 +249,6 @@ const onNewAsiento = async (req, res = response) => {
     }
 }
 
-
 const onUpdateAsiento = async (req, res = response) => {
 
     const db = req.db;
