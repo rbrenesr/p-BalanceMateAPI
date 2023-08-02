@@ -4,6 +4,7 @@ const { response, request } = require("express");
 const bcryptjs = require('bcryptjs');
 const sql = require('mssql');
 const fs = require('fs');
+const { clearScreenDown } = require('readline');
 
 
 
@@ -157,10 +158,12 @@ const onGetEmpresa = async (req = request, res = response) => {
                         [direccion],[repNombre],[repCedula],[repTelefono],[repCorreo],[estado]
                       FROM [dbo].[Empresa] ${where}`;
 
-    await sql.close();
-    const pool = await sql.connect(configBD);
+    
+
+    const pool = await sql.connect(configBD); 
     const result = await pool.request().query(myquery);
     const recordset = result.recordset;
+    pool.close();
 
     if (recordset.length < 1) {
       return res.status(200).json({
