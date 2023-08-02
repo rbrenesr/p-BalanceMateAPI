@@ -1,35 +1,34 @@
-const { configBD } = require('../database/config');
-const { generarJWT } = require('../helpers/jwt');
 const { response, request } = require("express");
-const bcryptjs = require('bcryptjs');
-const sql = require('mssql');
+const { configBD } = require('../database/config');
+const DatabaseManager = require('../database/DatabaseManager');
+const { generarJWT } = require('../helpers/jwt');
 
 const autenticar = async (req = request, res = response) => {
+
+  const dbManager = new DatabaseManager(configBD);
+  await dbManager.connect();
 
   try {
 
     const { correo, contrasena } = req.body;
 
-    const myquery = `SELECT id ,correo ,contrasena ,nombre ,estado 
-                      FROM [dbo].[Usuario] 
-                      WHERE correo = '${correo}' AND contrasena = '${contrasena}'`;
+    const usuario = await dbManager.executeQuery(
+      `SELECT id ,correo ,contrasena ,nombre ,estado 
+      FROM [dbo].[Usuario] 
+      WHERE correo = '${correo}' AND contrasena = '${contrasena}'`
+    );
 
-    await sql.close();
-    const pool = await sql.connect(configBD);
-    const usuario = await pool.request().query(myquery);
-    const { recordset } = usuario;
-
-    if (recordset.length != 1) {
+    if (usuario.length != 1) {
       return res.status(401).json({
         ok: false,
         msg: "Unauthorized."
       });
     }
 
-    const _id = recordset[0].id;
-    const _nombre = recordset[0].u_nombre;
+    const _id = usuario[0].id;
+    const _nombre = usuario[0].u_nombre;
     const token = await generarJWT(_id, _nombre, configBD.database);
-    const { contrasena: contrasenaUsuario, ...usuarioReturn } = recordset[0];
+    const { contrasena: contrasenaUsuario, ...usuarioReturn } = usuario[0];
 
     res.status(200).json({
       ok: true,
@@ -42,26 +41,26 @@ const autenticar = async (req = request, res = response) => {
     res.status(500).json({
       ok: false,
       msg: "Internal Server Error.",
-      description: error.message
+      description: error
     });
+  } finally {
+    await dbManager.disconnect();
   }
 }
 
 const renovarToken = async (req = request, res = response) => {
+
+  const dbManager = new DatabaseManager(configBD);
+  await dbManager.connect();
 
   try {
 
     const { id, name } = req;
     const db = req.params.id;
 
-    const myquery = `SELECT 1 FROM Usuario WHERE id = ${id}`;
-
-    await sql.close();
-    const pool = await sql.connect(configBD);
-    const usuario = await pool.request().query(myquery);
-    const { recordset } = usuario;
-
-    if (recordset.length != 1) {
+    const usuario = await dbManager.executeQuery(`SELECT 1 FROM Usuario WHERE id = ${id}`);
+    
+    if (usuario.length != 1) {
       return res.status(401).json({
         ok: false,
         msg: "Unauthorized.",
@@ -80,29 +79,30 @@ const renovarToken = async (req = request, res = response) => {
     res.status(500).json({
       ok: false,
       msg: "Internal Server Error.",
-      description: error.message
+      description: error
     });
+  }finally{
+    await dbManager.disconnect();
   }
 }
 
 const obtenerEmpresasUsuario = async (req, res = response) => {
 
+  const { id } = req; 
+  const dbManager = new DatabaseManager(configBD);
+  await dbManager.connect();
+
   try {
 
-    const { id } = req;
-
-    const myquery = `SELECT E.id ,E.cedula ,E.nombre ,E.direccion ,E.baseDatos ,E.estado 
-                      FROM Empresa E 
-                      JOIN UsuarioEmpresa EU on E.id = EU.empresaId 
-                      JOIN Usuario U on U.id = EU.usuarioId 
-                      WHERE U.id = ${id} `;
-      
-    await sql.close();
-    const pool = await sql.connect(configBD);
-    const empresa = await pool.request().query(myquery);
-    const { recordset } = empresa;
-
-    if (recordset.length < 1) {
+    const empresa = await dbManager.executeQuery(
+      `SELECT E.id ,E.cedula ,E.nombre ,E.direccion ,E.baseDatos ,E.estado 
+      FROM Empresa E 
+      JOIN UsuarioEmpresa EU on E.id = EU.empresaId 
+      JOIN Usuario U on U.id = EU.usuarioId 
+      WHERE U.id = ${id} `      
+    );
+    
+    if (empresa.length < 1) {
       return res.status(204).json({
         ok: false,
         msg: "No Content."
@@ -111,7 +111,7 @@ const obtenerEmpresasUsuario = async (req, res = response) => {
 
     res.status(200).json({
       ok: true,
-      empresas: recordset,
+      empresas: empresa,
     });
   }
 
@@ -120,8 +120,11 @@ const obtenerEmpresasUsuario = async (req, res = response) => {
     res.status(500).json({
       ok: false,
       msg: "Internal Server Error.",
-      description: error.message
+      description: error
     });
+  }
+  finally{
+    await dbManager.disconnect();
   }
 
 };

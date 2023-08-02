@@ -1,18 +1,14 @@
-const { configBD } = require('../database/config');
-const { generarJWT } = require('../helpers/jwt');
 const { response, request } = require("express");
-const bcryptjs = require('bcryptjs');
-const sql = require('mssql');
 const fs = require('fs');
-const { clearScreenDown } = require('readline');
-
-
-
+const { configBD } = require('../database/config');
+const DatabaseManager = require('../database/DatabaseManager');
 
 const onNewEmpresa = async (req = request, res = response) => {
 
   const uid = req.id;
-  let { baseDatos, cedula, nombre, correo, telefonoUno, telefonoDos, paginaWeb, direccion, repNombre, repCedula, repTelefono, repCorreo, estado } = req.body;
+
+  let { baseDatos, cedula, nombre, correo, telefonoUno, telefonoDos, paginaWeb, direccion,
+    repNombre, repCedula, repTelefono, repCorreo, estado } = req.body;
 
   baseDatos = baseDatos || '';
   telefonoUno = telefonoUno || '';
@@ -29,96 +25,84 @@ const onNewEmpresa = async (req = request, res = response) => {
     });
   }
 
-  await sql.close();
-  const dbConn = new sql.ConnectionPool(configBD);
-  await dbConn.connect();
-  const transaction = new sql.Transaction(dbConn);
-  await transaction.begin();
+
+  let newbaseDatos = '';
+  let newEmp = 0;
+
+  const dbManager = new DatabaseManager(configBD);
+  await dbManager.connect();
 
   try {
 
-    const empresaResult = await new sql.Request(transaction)
-      .input('baseDatos', sql.VarChar, baseDatos)
-      .input('cedula', sql.VarChar, cedula)
-      .input('nombre', sql.VarChar, nombre)
-      .input('correo', sql.VarChar, correo)
-      .input('telefonoUno', sql.VarChar, telefonoUno)
-      .input('telefonoDos', sql.VarChar, telefonoDos)
-      .input('paginaWeb', sql.VarChar, paginaWeb)
-      .input('direccion', sql.VarChar, direccion)
-      .input('repNombre', sql.VarChar, repNombre)
-      .input('repCedula', sql.VarChar, repCedula)
-      .input('repTelefono', sql.VarChar, repTelefono)
-      .input('repCorreo', sql.VarChar, repCorreo)
-      .input('estado', sql.VarChar, estado)
-      .query('INSERT INTO Empresa ( baseDatos, cedula, nombre, correo, telefonoUno, telefonoDos, paginaWeb, direccion, repNombre, repCedula, repTelefono, repCorreo, estado ) ' +
-        'OUTPUT inserted.id VALUES ( @baseDatos, @cedula,@nombre,@correo,@telefonoUno,@telefonoDos,@paginaWeb,@direccion,@repNombre,@repCedula,@repTelefono,@repCorreo,@estado )');
+    await dbManager.beginTransaction();
 
-    const recordset = empresaResult.recordset;
-    const newId = recordset[0].id;
+    const empresaResult = await dbManager.executeQuery(
+      `INSERT INTO Empresa ( baseDatos, cedula, nombre, correo, telefonoUno, telefonoDos, paginaWeb, direccion, repNombre, repCedula, repTelefono, repCorreo, estado )
+       OUTPUT inserted.id VALUES ( @baseDatos, @cedula,@nombre,@correo,@telefonoUno,@telefonoDos,@paginaWeb,@direccion,@repNombre,@repCedula,@repTelefono,@repCorreo,@estado )`
+      , { baseDatos, cedula, nombre, correo, telefonoUno, telefonoDos, paginaWeb, direccion, repNombre, repCedula, repTelefono, repCorreo, estado }
+    );
 
-    /**Insert UsuarioEmpresa */
-    const usuarioEmpresaResult = await new sql.Request(transaction)
-      .input('usuarioId', sql.Int, uid)
-      .input('empresaId', sql.Int, newId)
-      .query('INSERT INTO UsuarioEmpresa ( usuarioId, empresaId ) ' +
-        'VALUES ( @usuarioId, @empresaId )');
+    const newId = empresaResult[0].id;
 
-    await transaction.commit();
+    await dbManager.executeQuery(
+      `INSERT INTO UsuarioEmpresa ( usuarioId, empresaId ) VALUES ( @uid, @newId )`
+      , { uid, newId }
+    )
 
+    await dbManager.commitTransaction();
 
-    const newbaseDatosResult = await dbConn.request()
-      .input('id', sql.Int, newId)
-      .input('cedula', sql.VarChar, cedula)
-      .execute(`SPCrearEmpresa`);
-    const newbaseDatos = newbaseDatosResult.recordset[0].nombre;
+    const newbaseDatosResult = await dbManager.executeProcedure('SPCrearEmpresa', { id: newId, cedula });
+    newbaseDatos = newbaseDatosResult[0].nombre;
 
+    await dbManager.executeQuery(`UPDATE dbo.Empresa set baseDatos = '${newbaseDatos}' where id = ${newId}`);
 
-    const updateEmpresaResult = await dbConn.request()
-      .query(`UPDATE dbo.Empresa set baseDatos = '${newbaseDatos}' where id = ${newId}`);
-
-
-    const newEmp = (await dbConn.request().query(
+    newEmp = (await dbManager.executeQuery(
       `SELECT [id],[baseDatos],[cedula],[nombre],[correo],[telefonoUno],[telefonoDos],[paginaWeb],[direccion],[repNombre],
       [repCedula],[repTelefono],[repCorreo],[estado]
       FROM Empresa WHERE id = ${newId}`
-    )).recordset[0];
-
-
-
-    //Nuevo contexto
-    const configBDNew = { ...configBD, database: newbaseDatos };
-    await sql.close();
-    const dbConnNew = new sql.ConnectionPool(configBDNew);
-    await dbConnNew.connect();
-
-    const sqlBatch = fs.readFileSync("./database/scripts/createDataBase.sql", "utf-8");
-
-    await dbConnNew.request()
-      .batch(sqlBatch);
-
-
-    return res.status(200).json({
-      ok: true,
-      msg: 'Empresa ingresada correctamente',
-      newbaseDatos,
-      newEmp
-    });
+    ))[0];
 
   } catch (error) {
-
     console.log(error.message);
-    await transaction.rollback();
+    await dbManager.rollbackTransaction();
     res.status(500).json({
       ok: false,
       msg: 'Error al procesar nuevo ingreso.',
-      msgSystem: error.originalError.info.message
+      msgSystem: error
+    });
+  }
+  finally {
+    await dbManager.disconnect();
+  }
+
+
+  //Nuevo contexto
+  const configBDNew = { ...configBD, database: newbaseDatos };
+  const dbManagerNewContext = new DatabaseManager(configBDNew);
+  await dbManagerNewContext.connect();
+
+  try {
+    const sqlBatch = fs.readFileSync("./database/scripts/createDataBase.sql", "utf-8");
+    await dbManagerNewContext.executeBatch(sqlBatch);
+  } catch (error) {
+    console.log(error.message);
+    res.status(500).json({
+      ok: false,
+      msg: 'Error al procesar nuevo ingreso.',
+      msgSystem: error
     });
 
   }
   finally {
-    await dbConn.close();
+    await dbManagerNewContext.disconnect();
   }
+
+  return res.status(200).json({
+    ok: true,
+    msg: 'Empresa ingresada correctamente',
+    newbaseDatos,
+    newEmp
+  });
 
 };
 
@@ -158,14 +142,14 @@ const onGetEmpresa = async (req = request, res = response) => {
                         [direccion],[repNombre],[repCedula],[repTelefono],[repCorreo],[estado]
                       FROM [dbo].[Empresa] ${where}`;
 
-    
 
-    const pool = await sql.connect(configBD); 
-    const result = await pool.request().query(myquery);
-    const recordset = result.recordset;
-    pool.close();
+    const dbManager = new DatabaseManager(configBD);
+    await dbManager.connect();
+    const result = await dbManager.executeQuery(myquery);
+    await dbManager.disconnect();
 
-    if (recordset.length < 1) {
+
+    if (result.length < 1) {
       return res.status(200).json({
         ok: false,
         msg: `No existe datos para la búsqueda proporcionada por = ${valor} en ${clave}`,
@@ -176,7 +160,7 @@ const onGetEmpresa = async (req = request, res = response) => {
     return res.status(200).json({
       ok: true,
       msg: `Empresas seleccionadas`,
-      empresa: recordset,
+      empresa: result,
     });
 
   } catch (error) {
@@ -184,7 +168,7 @@ const onGetEmpresa = async (req = request, res = response) => {
     res.status(500).json({
       ok: false,
       msg: 'Error al procesar la selección del datos.',
-      msgSystem: error.originalError.info.message
+      msgSystem: error
     });
   }
 }
@@ -214,60 +198,46 @@ const onUpdateEmpresa = async (req = request, res = response) => {
     });
   }
 
-  await sql.close();
-  const dbConn = new sql.ConnectionPool(configBD);
-  await dbConn.connect();
-  let transaction;
+  const dbManager = new DatabaseManager(configBD);
+  await dbManager.connect();
 
   try {
 
-    transaction = new sql.Transaction(dbConn);
-    await transaction.begin();
-    const request = new sql.Request(transaction);
+    await dbManager.beginTransaction();
 
-    request
-      .input('pnombre', sql.VarChar, nombre)
-      .input('pcorreo', sql.VarChar, correo)
-      .input('ptelefonoUno', sql.VarChar, telefonoUno)
-      .input('ptelefonoDos', sql.VarChar, telefonoDos)
-      .input('ppaginaWeb', sql.VarChar, paginaWeb)
-      .input('pdireccion', sql.VarChar, direccion)
-      .input('prepNombre', sql.VarChar, repNombre)
-      .input('prepCedula', sql.VarChar, repCedula)
-      .input('prepTelefono', sql.VarChar, repTelefono)
-      .input('prepCorreo', sql.VarChar, repCorreo)
-
-    const result = await request
-      .query(`UPDATE [dbo].[Empresa]
-            SET [nombre] = @pnombre
-              ,[correo] = @pcorreo
-              ,[telefonoUno] = @ptelefonoUno
-              ,[telefonoDos] = @ptelefonoDos
-              ,[paginaWeb] = @ppaginaWeb
-              ,[direccion] = @pdireccion
-              ,[repNombre] = @prepNombre
-              ,[repCedula] = @prepCedula
-              ,[repTelefono] = @prepTelefono
-              ,[repCorreo] =    @prepCorreo   
-          WHERE id = ${id}`);
-
-
-    if (result.rowsAffected != 1) {
+    const result = await dbManager.executeQuery(
+      `UPDATE [dbo].[Empresa]
+      SET [nombre] = @nombre
+        ,[correo] = @correo
+        ,[telefonoUno] = @telefonoUno
+        ,[telefonoDos] = @telefonoDos
+        ,[paginaWeb] = @paginaWeb
+        ,[direccion] = @direccion
+        ,[repNombre] = @repNombre
+        ,[repCedula] = @repCedula
+        ,[repTelefono] = @repTelefono
+        ,[repCorreo] =    @repCorreo   
+      WHERE id = ${id}`
+      , { nombre, correo, telefonoUno, telefonoDos, paginaWeb, direccion, repNombre, repCedula, repTelefono, repCorreo }
+    );
+    
+  
+    if (result != 1) {
       return res.status(400).json({
         ok: false,
-        msg: `Se actualizaron registros en la base de datos para ${id}.`,
+        msg: `No se actualizaron registros en la base de datos para ${id}.`,
         empresa: newEmp,
       });
     }
 
+    const empUpdated = (await dbManager.executeQuery(
+      `SELECT [id],[baseDatos],[cedula],[nombre],[correo],[telefonoUno],[telefonoDos],[paginaWeb],
+      [direccion],[repNombre],[repCedula],[repTelefono],[repCorreo],[estado]
+      FROM [dbo].[Empresa]
+      WHERE id = ${id}`))[0];
+    
 
-    const myquery = `SELECT [id],[baseDatos],[cedula],[nombre],[correo],[telefonoUno],[telefonoDos],[paginaWeb],
-                        [direccion],[repNombre],[repCedula],[repTelefono],[repCorreo],[estado]
-                    FROM [dbo].[Empresa]
-                    WHERE id = ${id}`;
-    const empUpdated = (await request.query(myquery)).recordset[0];
-
-    await transaction.commit();
+    await dbManager.commitTransaction();
 
     return res.status(200).json({
       ok: true,
@@ -276,44 +246,45 @@ const onUpdateEmpresa = async (req = request, res = response) => {
     });
 
   } catch (error) {
-    await transaction.rollback();
+    await dbManager.rollbackTransaction();
     console.log(error.message);
     res.status(500).json({
       ok: false,
       msg: 'Error al procesar actualización de empresa.',
-      msgSystem: error.originalError.info.message
+      msgSystem: error
     });
 
   } finally {
-    await dbConn.close();
+    await dbManager.disconnect();
   }
 };
 
 
 const findEmpresaByCedula = async (cedula) => {
-  const query = `SELECT 1 FROM Empresa WHERE cedula = '${cedula}'`;
-  await sql.close();
-  const pool = await sql.connect(configBD);
-  const result = await pool.request().query(query);
-  const { recordset } = result;
 
-  if (recordset.length === 1)
+  const dbManager = new DatabaseManager(configBD);
+  await dbManager.connect();
+  const result = await dbManager.executeQuery(`SELECT 1 FROM Empresa WHERE cedula = '${cedula}'`);
+  await dbManager.disconnect();
+
+  if (result.length === 1)
     return true;
   else
     return false;
 }
 
 const findEmpresaById = async (id) => {
-  const myquery = `SELECT 1 FROM Empresa WHERE id = '${id}'`;
-  await sql.close();
-  const pool = await sql.connect(configBD);
-  const result = await pool.request().query(myquery);
-  const { recordset } = result;
 
-  if (recordset.length === 1)
+  const dbManager = new DatabaseManager(configBD);
+  await dbManager.connect();
+  const result = await dbManager.executeQuery(`SELECT 1 FROM Empresa WHERE id = '${id}'`);
+  await dbManager.disconnect();
+
+  if (result.length === 1)
     return true;
   else
     return false;
+
 }
 
 module.exports = { onNewEmpresa, onGetEmpresa, onUpdateEmpresa };

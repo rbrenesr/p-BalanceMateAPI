@@ -1,9 +1,7 @@
-const { configBD } = require('../database/config');
-const { generarJWT } = require('../helpers/jwt');
 const { response, request } = require("express");
-const bcryptjs = require('bcryptjs');
-const sql = require('mssql');
-
+const { configBD } = require('../database/config');
+const DatabaseManager = require('../database/DatabaseManager');
+const { generarJWT } = require('../helpers/jwt');
 
 const nuevoUsuario = async (req = request, res = response) => {
 
@@ -13,45 +11,39 @@ const nuevoUsuario = async (req = request, res = response) => {
   if (!telefono) telefono = '';
   if (!estado) estado = 1;
 
+  if (await existeElUsuario(correo)) {
+    return res.status(409).json({
+      ok: false,
+      msg: 'La cuenta ya se encuentra registrada.'
+    });
+  }
+
+  const dbManager = new DatabaseManager(configBD);
+  await dbManager.connect();
+
   try {
 
-    if (await existeElUsuario(correo)) {
-      return res.status(409).json({
-        ok: false,
-        msg: 'La cuenta ya se encuentra registrada.'
-      });
-    }
 
-    await sql.close();
-    const pool = await sql.connect(configBD);
-    let result = await pool.request()
-      .input('p1', sql.VarChar, correo)
-      .input('p2', sql.VarChar, contrasena)
-      .input('p3', sql.VarChar, nombre)
-      .input('p4', sql.VarChar, direccion)
-      .input('p5', sql.VarChar, telefono)
-      .input('p6', sql.TinyInt, estado)
-      .query('INSERT INTO Usuario ( correo, contrasena, nombre, direccion, telefono, estado ) ' +
-        'OUTPUT inserted.id VALUES ( @p1, @p2, @p3, @p4, @p5, @p6 )');
+    const result1 = await dbManager.executeQuery(
+      `INSERT INTO Usuario ( correo, contrasena, nombre, direccion, telefono, estado ) 
+      OUTPUT inserted.id VALUES ( @correo, @contrasena, @nombre, @direccion, @telefono, @estado )`
+      , { correo, contrasena, nombre, direccion, telefono, estado }
+    );
+    const newId = result1[0].id;
 
+    const result2 = await dbManager.executeQuery(
+      `SELECT id ,correo ,nombre ,direccion ,telefono ,estado FROM Usuario 
+      WHERE id = ${newId}`
+    );
 
-    let recordset = result.recordset;
-    const newId = recordset[0].id;
-
-    const myquery =`SELECT id ,correo ,nombre ,direccion ,telefono ,estado FROM Usuario 
-                    WHERE id = ${newId}`;
-
-    result = await pool.request().query(myquery);
-    recordset = result.recordset;
-
-    const _id = recordset[0].id;
-    const _nombre = recordset[0].nombre;
+    const _id = result2[0].id;
+    const _nombre = result2[0].nombre;
     const token = await generarJWT(_id, _nombre);
 
     return res.status(200).json({
       ok: true,
       msg: 'Usuario ingresado correctamente',
-      usuario: recordset[0],
+      usuario: result2[0],
       token
     });
 
@@ -62,11 +54,16 @@ const nuevoUsuario = async (req = request, res = response) => {
       msg: 'Error al procesar el ingreso del nuevo usuario.',
       msgSystem: error.originalError.info.message
     });
+  } finally {
+    await dbManager.disconnect();
   }
 
 }
 
 const obtenerUsuario = async (req = request, res = response) => {
+
+  const dbManager = new DatabaseManager(configBD);
+  await dbManager.connect();
 
   try {
 
@@ -97,27 +94,24 @@ const obtenerUsuario = async (req = request, res = response) => {
     else
       where = `WHERE ${clave} like '%${valor}%'`;
 
-   
-    const myquery =`SELECT id ,correo ,nombre ,direccion ,telefono ,estado 
-                    FROM Usuario ${where}`;
-                    
-    await sql.close();
-    const pool = await sql.connect(configBD);
-    const result = await pool.request().query(myquery);
-    const recordset = result.recordset;
 
-    if (recordset.length < 1) {
+    const result = await dbManager.executeQuery(
+      `SELECT id ,correo ,nombre ,direccion ,telefono ,estado 
+      FROM Usuario ${where}`
+    );
+
+    if (result.length < 1) {
       return res.status(200).json({
         ok: false,
         msg: `No existe datos para la búsqueda proporcionada por = ${valor} en ${clave}`,
-        usuario: recordset[0],
+        usuario: result[0],
       });
     }
 
     return res.status(200).json({
       ok: true,
       msg: `Usuario seleccionado`,
-      usuario: recordset,
+      usuario: result,
     });
 
   } catch (error) {
@@ -125,25 +119,30 @@ const obtenerUsuario = async (req = request, res = response) => {
     res.status(500).json({
       ok: false,
       msg: 'Error al procesar la selección del usuario.',
-      msgSystem: error.originalError.info.message
+      msgSystem: error
     });
+  } finally {
+    await dbManager.disconnect();
   }
 }
 
-const actualizarUsuario = () => { }
-const eliminarUsuario = () => { }
-
 const existeElUsuario = async (correo) => {
-  const myquery = `SELECT 1 FROM Usuario WHERE correo = '${correo}'`;
-  await sql.close();
-  const pool = await sql.connect(configBD);
-  const result = await pool.request().query(myquery);
-  const { recordset } = result;
 
-  if (recordset.length === 1)
-    return true;
-  else
-    return false;
+  const dbManager = new DatabaseManager(configBD);
+  await dbManager.connect();
+
+  try {
+    const result = await dbManager.executeQuery(`SELECT 1 FROM Usuario WHERE correo = '${correo}'`);
+    if (result.length === 1)
+      return true;
+    else
+      return false;
+  } catch (error) {
+    console.log(error)
+  } finally {
+    dbManager.disconnect();
+  }
+
 }
 
 module.exports = { nuevoUsuario, obtenerUsuario };
