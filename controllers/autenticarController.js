@@ -26,13 +26,17 @@ const autenticar = async (req = request, res = response) => {
     }
 
     const _id = usuario[0].id;
-    const _nombre = usuario[0].u_nombre;
-    const token = await generarJWT(_id, _nombre, configBD.database);
-    const { contrasena: contrasenaUsuario, ...usuarioReturn } = usuario[0];
+    const _correo = usuario[0].correo;
+    const _nombre = usuario[0].nombre;
+    const _db = configBD.database;
+    
+    
+    const token = await generarJWT(_id, _db);
+    
 
     res.status(200).json({
       ok: true,
-      usuario: usuarioReturn,
+      usuario: {id:_id, correo:_correo, nombre:_nombre, db:_db },
       token
     });
 
@@ -55,8 +59,9 @@ const renovarToken = async (req = request, res = response) => {
 
   try {
 
-    const { id, name } = req;
-    const db = req.params.id;
+    const { id, name, db } = req;    
+    const dbNew = req.params.id;
+    let dbToSend = (dbNew) ? dbNew : db;
 
     const usuario = await dbManager.executeQuery(`SELECT 1 FROM Usuario WHERE id = ${id}`);
     
@@ -67,10 +72,11 @@ const renovarToken = async (req = request, res = response) => {
       });
     }
 
-    const token = await generarJWT(id, name, db);
+    const token = await generarJWT(id, name, dbToSend);
 
     res.status(200).json({
       ok: true,
+      usuario:{ id, name, db},
       token
     });
 
